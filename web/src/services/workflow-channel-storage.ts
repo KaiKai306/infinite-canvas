@@ -1,8 +1,9 @@
+import { accountDatabaseName } from "@/lib/account-storage";
 import localforage from "localforage";
 
 import type { WorkflowChannelData, WorkflowEntry } from "@/lib/workflow-channel";
 
-const store = localforage.createInstance({ name: "infinite-canvas", storeName: "workflow_channels" });
+const store = localforage.createInstance({ name: accountDatabaseName, storeName: "workflow_channels" });
 const accountKey = (accountId: string) => encodeURIComponent(accountId || "guest");
 let writeQueue = Promise.resolve();
 

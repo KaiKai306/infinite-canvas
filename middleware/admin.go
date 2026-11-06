@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/tigerowo/infinite-canvas/handler"
 	"github.com/tigerowo/infinite-canvas/model"
 	"github.com/tigerowo/infinite-canvas/service"
-	"github.com/gin-gonic/gin"
 )
 
 func AdminAuth(c *gin.Context) {
@@ -36,6 +36,30 @@ func OptionalAuth(c *gin.Context) {
 	if user, ok := authUser(c); ok {
 		c.Request = c.Request.WithContext(service.WithUser(c.Request.Context(), user))
 	}
+	c.Next()
+}
+
+// FileReadAuth supports browser <img> and downloads without making writes cookie-authenticated.
+func FileReadAuth(c *gin.Context) {
+	c.Header("Cache-Control", "private, no-store")
+	c.Header("Vary", "Cookie, Authorization")
+	if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
+		c.AbortWithStatus(http.StatusMethodNotAllowed)
+		return
+	}
+	token := service.BearerToken(c.Request)
+	if token == "" && c.GetHeader("Authorization") == "" {
+		if cookie, err := c.Request.Cookie(service.FileSessionCookie); err == nil {
+			token = cookie.Value
+		}
+	}
+	user, ok := service.CurrentAuthUser(token)
+	if !ok || user.Role == model.UserRoleGuest {
+		handler.FailWithStatus(c.Writer, http.StatusUnauthorized, "请先登录")
+		c.Abort()
+		return
+	}
+	c.Request = c.Request.WithContext(service.WithUser(c.Request.Context(), user))
 	c.Next()
 }
 

@@ -7,6 +7,8 @@ description: 当前后端主要数据表与字段说明
 
 本文档只记录后端当前已经使用的主要数据表。
 
+HappyKai 分支未新增表。New API 登录映射使用 `users.id = users.username = newapi-<数字用户ID>`，不存其密码或上游会话；`display_name` 保存显示名称。不得将同一数据库改接另一套 New API 用户库。公开配置增加环境派生的 `auth.newApiEnabled`，详见 `deploy/happykai/README.md`。
+
 ## 数据库
 
 后端使用 GORM 管理数据库连接和表结构迁移。

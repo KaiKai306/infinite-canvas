@@ -243,6 +243,7 @@ export type AdminPublicModelChannelInfo = {
 export type AdminPublicSettings = {
     modelChannel: AdminPublicModelChannelSettings;
     auth: {
+        newApiEnabled?: boolean;
         allowRegister: boolean;
         linuxDo: {
             enabled: boolean;

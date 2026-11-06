@@ -1,9 +1,10 @@
+import { accountDatabaseName } from "@/lib/account-storage";
 import localforage from "localforage";
 import { create } from "zustand";
 
 import type { ChannelTranslation } from "@/lib/channel-parameter-translation";
 
-const storage = localforage.createInstance({ name: "infinite-canvas", storeName: "channel_translations" });
+const storage = localforage.createInstance({ name: accountDatabaseName, storeName: "channel_translations" });
 let writeQueue = Promise.resolve();
 type TranslationStore = {
     accounts: Record<string, Record<string, string>>;

@@ -6,13 +6,16 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/tigerowo/infinite-canvas/config"
 	"github.com/tigerowo/infinite-canvas/model"
 	"github.com/tigerowo/infinite-canvas/service"
 )
 
 type loginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	ChallengeID string `json:"challengeId"`
+	Code        string `json:"verificationCode"`
 }
 
 type registerRequest struct {
@@ -42,18 +45,40 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		FailError(w, err)
 		return
 	}
+	service.SetFileSessionCookie(w, session.Token)
 	OK(w, session)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	var request loginRequest
-	_ = json.NewDecoder(r.Body).Decode(&request)
+	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&request) != nil {
+		Fail(w, "登录内容格式错误")
+		return
+	}
+	if strings.TrimSpace(config.Cfg.NewAPIBaseURL) != "" {
+		session, err := service.LoginNewAPI(r.Context(), request.Username, request.Password, request.ChallengeID, request.Code)
+		if err != nil {
+			FailError(w, err)
+			return
+		}
+		if session.Token != "" {
+			service.SetFileSessionCookie(w, session.Token)
+		}
+		OK(w, session)
+		return
+	}
 	session, err := service.Login(request.Username, request.Password)
 	if err != nil {
 		FailError(w, err)
 		return
 	}
+	service.SetFileSessionCookie(w, session.Token)
 	OK(w, session)
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	service.ClearFileSessionCookie(w)
+	OK(w, true)
 }
 
 func LinuxDoAuthorize(w http.ResponseWriter, r *http.Request) {
@@ -86,11 +111,13 @@ func AdminLogin(w http.ResponseWriter, r *http.Request) {
 		Fail(w, "需要管理员权限")
 		return
 	}
+	service.SetFileSessionCookie(w, session.Token)
 	OK(w, session)
 }
 
 func CurrentUser(w http.ResponseWriter, r *http.Request) {
 	if user, ok := service.UserFromContext(r.Context()); ok {
+		service.SetFileSessionCookie(w, service.BearerToken(r))
 		OK(w, user)
 		return
 	}

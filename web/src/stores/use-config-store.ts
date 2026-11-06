@@ -1,5 +1,7 @@
 "use client";
 
+import { accountStorageScope } from "@/lib/account-storage";
+
 import { useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -423,7 +425,7 @@ export const useConfigStore = create<ConfigStore>()(
             clearPromptContinue: () => set({ shouldPromptContinue: false }),
         }),
         {
-            name: CONFIG_STORE_KEY,
+            name: `${CONFIG_STORE_KEY}:${accountStorageScope}`,
             partialize: (state) => ({ config: state.config }),
             merge: (persisted, current) => {
                 const persistedState = (persisted || {}) as Partial<ConfigStore>;

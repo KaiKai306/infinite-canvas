@@ -2,10 +2,10 @@
 
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { App, Button, Form, Input, Segmented, Space } from "antd";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { fetchCurrentUser } from "@/services/api/auth";
+import { fetchCurrentUser, NewAPIChallengeError } from "@/services/api/auth";
 import { useConfigStore } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
 
@@ -13,6 +13,7 @@ type LoginFormValues = {
     username: string;
     password: string;
     confirmPassword?: string;
+    verificationCode?: string;
 };
 
 // 仅放行站内相对路径，拦截开放重定向。浏览器会忽略 URL 中的 Tab/换行/回车，并把
@@ -35,7 +36,6 @@ export default function LoginPage() {
 
 function LoginContent() {
     const { message } = App.useApp();
-    const router = useRouter();
     const searchParams = useSearchParams();
     const login = useUserStore((state) => state.login);
     const register = useUserStore((state) => state.register);
@@ -43,6 +43,8 @@ function LoginContent() {
     const isLoading = useUserStore((state) => state.isLoading);
     const linuxDoEnabled = useConfigStore((state) => state.publicSettings?.auth?.linuxDo?.enabled === true);
     const allowRegister = useConfigStore((state) => state.publicSettings?.auth?.allowRegister !== false);
+    const newAPIEnabled = useConfigStore((state) => state.publicSettings?.auth?.newApiEnabled === true);
+    const [challengeId, setChallengeId] = useState("");
     const [mode, setMode] = useState<"login" | "register">("login");
     const redirect = safeRedirect(searchParams.get("redirect"));
 
@@ -52,12 +54,10 @@ function LoginContent() {
         if (error) message.error(error);
         if (!token) return;
         void fetchCurrentUser(token).then((user) => {
-            setSession(token, user);
+            setSession(token, user, redirect);
             message.success("登录成功");
-            router.replace(redirect);
-            router.refresh();
         });
-    }, [message, redirect, router, searchParams, setSession]);
+    }, [message, redirect, searchParams, setSession]);
 
     useEffect(() => {
         if (!allowRegister && mode === "register") setMode("login");
@@ -74,12 +74,15 @@ function LoginContent() {
                 return;
             }
             const action = mode === "register" ? register : login;
-            const user = await action({ username: values.username, password: values.password });
+            await action({ username: values.username, password: values.password, challengeId, verificationCode: values.verificationCode, redirect });
             message.success(mode === "register" ? "注册成功" : "登录成功");
-            router.replace(redirect);
-            router.refresh();
-            if (user.role !== "admin") router.replace("/");
         } catch (error) {
+            if (error instanceof NewAPIChallengeError) {
+                setChallengeId(error.challengeId);
+                message.info(error.message);
+                return;
+            }
+            setChallengeId("");
             message.error(error instanceof Error ? error.message : "登录失败");
         }
     };
@@ -97,7 +100,7 @@ function LoginContent() {
                         aria-label="无限画布"
                     />
                     <h1 className="text-3xl font-semibold tracking-normal text-stone-950 dark:text-stone-100">账号登录</h1>
-                    <p className="mt-3 text-base leading-7 text-stone-500 dark:text-stone-400">支持账号密码和 Linux.do 登录。</p>
+                    <p className="mt-3 text-base leading-7 text-stone-500 dark:text-stone-400">{newAPIEnabled ? "使用 HappyKai New API 账号登录，画布与素材按账号保存。" : "支持账号密码和 Linux.do 登录。"}</p>
                 </div>
 
                 <Form<LoginFormValues> layout="vertical" size="large" requiredMark={false} onFinish={submit}>
@@ -118,6 +121,11 @@ function LoginContent() {
                     {mode === "register" ? (
                         <Form.Item name="confirmPassword" label={<span className="font-medium text-stone-800 dark:text-stone-200">确认密码</span>} rules={[{ required: true, message: "请再次输入密码" }]}>
                             <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
+                        </Form.Item>
+                    ) : null}
+                    {challengeId ? (
+                        <Form.Item name="verificationCode" label="New API 两步验证码" rules={[{ required: true, message: "请输入验证码" }]}>
+                            <Input autoComplete="one-time-code" inputMode="numeric" maxLength={8} />
                         </Form.Item>
                     ) : null}
                     <Space orientation="vertical" size={12} style={{ width: "100%" }}>

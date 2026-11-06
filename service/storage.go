@@ -143,8 +143,16 @@ func PublicStorageConfig() (model.PublicStorageConfig, error) {
 }
 
 // StorageObjectInfo 获取存储对象元数据。
-func StorageObjectInfo(id string) (model.StorageObject, error) {
-	return repository.GetStorageObject(id)
+func StorageObjectInfo(ctx context.Context, id string) (model.StorageObject, error) {
+	object, err := repository.GetStorageObject(id)
+	if err != nil {
+		return model.StorageObject{}, err
+	}
+	user, ok := UserFromContext(ctx)
+	if !ok || user.ID == "" || user.Role == model.UserRoleGuest || (user.ID != object.CreatedBy && user.Role != model.UserRoleAdmin) {
+		return model.StorageObject{}, safeMessageError{message: "文件不存在或无权访问"}
+	}
+	return object, nil
 }
 
 // SaveCurrentUserStorageProvider 保存用户配置的存储提供商。
@@ -507,8 +515,8 @@ func RefreshStorageCapacityScheduler() {
 }
 
 // DownloadStorageObject 下载存储对象内容。
-func DownloadStorageObject(id string, rangeHeader string) (DownloadedStorageObject, error) {
-	object, err := repository.GetStorageObject(id)
+func DownloadStorageObject(ctx context.Context, id string, rangeHeader string) (DownloadedStorageObject, error) {
+	object, err := StorageObjectInfo(ctx, id)
 	if err != nil {
 		return DownloadedStorageObject{}, err
 	}

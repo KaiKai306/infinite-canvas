@@ -1,4 +1,7 @@
 "use client";
+
+import { accountDatabaseName } from "@/lib/account-storage";
+
 import axios from "axios";
 
 import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CheckSquare, ChevronDown, ChevronUp, ClipboardPaste, CloudUpload, Copy, Download, FolderPlus, History, LoaderCircle, Music2, PanelBottom, PanelLeft, Plus, RotateCcw, SlidersHorizontal, Sparkles, Square, Trash2, Upload, VideoIcon } from "lucide-react";
@@ -109,7 +112,7 @@ type WorkflowPollContext = { token: string; signal: AbortSignal };
 type VideoTaskRun = { id: string; controller: AbortController; backend?: GenerationLog["taskBackend"]; submission?: Promise<GenerationLog>; poll?: Promise<void>; settledLog?: GenerationLog; stopping?: boolean };
 
 const WORKBENCH_LAYOUT_KEY = "infinite-canvas:video-workbench-layout";
-const logStore = localforage.createInstance({ name: "infinite-canvas", storeName: "video_generation_logs" });
+const logStore = localforage.createInstance({ name: accountDatabaseName, storeName: "video_generation_logs" });
 export default function VideoPage() {
     const { message } = App.useApp();
     const fileInputRef = useRef<HTMLInputElement>(null);

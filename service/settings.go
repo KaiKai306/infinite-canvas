@@ -11,11 +11,12 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"sort"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/tigerowo/infinite-canvas/config"
 	"github.com/tigerowo/infinite-canvas/model"
 	"github.com/tigerowo/infinite-canvas/repository"
 )
@@ -167,6 +168,12 @@ func DefaultSystemPrompts() model.SystemPromptSetting {
 }
 
 func normalizePublicSettingWithChannels(setting model.PublicSetting, channels []model.ModelChannel) model.PublicSetting {
+	setting.Auth.NewAPIEnabled = strings.TrimSpace(config.Cfg.NewAPIBaseURL) != ""
+	if setting.Auth.NewAPIEnabled {
+		disabled := false
+		setting.Auth.AllowRegister = &disabled
+		setting.Auth.LinuxDo.Enabled = false
+	}
 	if setting.ModelChannel.AvailableModels == nil {
 		setting.ModelChannel.AvailableModels = []string{}
 	}

@@ -1,0 +1,38 @@
+name: happykai-canvas
+services:
+  app:
+    image: ${CANVAS_IMAGE:?Configure the tested application image}
+    environment:
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Configure recovery administrator}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Configure recovery password}
+      JWT_SECRET: ${JWT_SECRET:?Configure session signing secret}
+      JWT_EXPIRE_HOURS: "8"
+      DATABASE_DSN: /app/data/infinite-canvas.db
+      STORAGE_DRIVER: sqlite
+      APP_URL: ${APP_URL:?Configure application origin}
+      AUTH_COOKIE_SECURE: "true"
+      NEW_API_BASE_URL: ${NEW_API_BASE_URL:?Configure New API HTTP URL}
+      NEW_API_PUBLIC_URL: ${NEW_API_PUBLIC_URL:?Configure New API login URL}
+      GOMAXPROCS: "3"
+    ports: ["127.0.0.1:13800:3000"]
+    volumes: ["./data:/app/data"]
+    restart: unless-stopped
+    mem_limit: 3g
+    cpus: 3.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+    networks: [canvas, newapi]
+networks:
+  canvas: {}
+  newapi:
+    external: true
+    name: new-api_default

@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from "@/services/api/request";
+import { AUTH_STORAGE_KEY } from "@/lib/account-storage";
 
-export const AUTH_TOKEN_KEY = "infinite-canvas-auth-token-v1";
+export const AUTH_TOKEN_KEY = AUTH_STORAGE_KEY;
 
 export type UserRole = "guest" | "user" | "admin";
 
@@ -23,13 +24,31 @@ export type AuthSession = {
 export type AuthPayload = {
     username: string;
     password: string;
+    challengeId?: string;
+    verificationCode?: string;
+    redirect?: string;
 };
 
+export class NewAPIChallengeError extends Error {
+    constructor(public challengeId: string) { super("请输入 New API 两步验证码"); }
+}
+
+let pendingLogout: Promise<unknown> = Promise.resolve();
+
+export function logout() {
+    pendingLogout = pendingLogout.catch(() => undefined).then(() => apiPost<boolean>("/api/auth/logout"));
+    return pendingLogout;
+}
+
 export async function login(payload: AuthPayload) {
-    return apiPost<AuthSession>("/api/auth/login", payload);
+    await pendingLogout.catch(() => undefined);
+    const result = await apiPost<AuthSession & { requireTwoFA?: boolean; challengeId?: string }>("/api/auth/login", payload);
+    if (result.requireTwoFA && result.challengeId) throw new NewAPIChallengeError(result.challengeId);
+    return result;
 }
 
 export async function register(payload: AuthPayload) {
+    await pendingLogout.catch(() => undefined);
     return apiPost<AuthSession>("/api/auth/register", payload);
 }
 

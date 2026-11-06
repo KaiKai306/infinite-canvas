@@ -140,14 +140,16 @@ func DeleteDirectFileRecord(w http.ResponseWriter, r *http.Request, id string) {
 
 // FileContent 获取文件内容。
 func FileContent(w http.ResponseWriter, r *http.Request, id string) {
-	download, err := service.DownloadStorageObject(id, r.Header.Get("Range"))
+	download, err := service.DownloadStorageObject(r.Context(), id, r.Header.Get("Range"))
 	if err != nil {
 		FailError(w, err)
 		return
 	}
 	defer download.Stream.Close()
 	w.Header().Set("Content-Type", download.Object.MimeType)
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	if download.AcceptRanges {
 		w.Header().Set("Accept-Ranges", "bytes")
 	}
@@ -165,7 +167,7 @@ func FileContent(w http.ResponseWriter, r *http.Request, id string) {
 
 // FileInfo 获取文件元数据。
 func FileInfo(w http.ResponseWriter, r *http.Request, id string) {
-	object, err := service.StorageObjectInfo(id)
+	object, err := service.StorageObjectInfo(r.Context(), id)
 	if err != nil {
 		FailError(w, err)
 		return

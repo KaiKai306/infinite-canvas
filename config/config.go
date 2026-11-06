@@ -23,6 +23,9 @@ type Config struct {
 	LinuxDoTokenURL     string `env:"LINUX_DO_TOKEN_URL" envDefault:"https://connect.linux.do/oauth2/token"`
 	LinuxDoUserInfoURL  string `env:"LINUX_DO_USERINFO_URL" envDefault:"https://connect.linux.do/api/user"`
 	AILogDir            string `env:"AI_LOG_DIR" envDefault:"data/logs/ai-calls"`
+	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
+	NewAPIPublicURL     string `env:"NEW_API_PUBLIC_URL"`
+	AuthCookieSecure    bool   `env:"AUTH_COOKIE_SECURE" envDefault:"true"`
 }
 
 var Cfg Config

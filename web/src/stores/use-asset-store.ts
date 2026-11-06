@@ -1,5 +1,8 @@
 "use client";
 
+import { accountDatabaseName } from "@/lib/account-storage";
+
+
 import { create } from "zustand";
 import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 
@@ -117,7 +120,7 @@ export const useAssetStore = create<AssetStore>()(
                             // 收集本地/云端生图历史与视频历史中的 storageKey，避免生成结果卡片失效
                             try {
                                 const localforage = (await import("localforage")).default;
-                                const imageLogStore = localforage.createInstance({ name: "infinite-canvas", storeName: "image_generation_logs" });
+                                const imageLogStore = localforage.createInstance({ name: accountDatabaseName, storeName: "image_generation_logs" });
                                 await imageLogStore.iterate((log: any) => {
                                     if (log) {
                                         if (Array.isArray(log.images)) {
@@ -138,7 +141,7 @@ export const useAssetStore = create<AssetStore>()(
 
                             try {
                                 const localforage = (await import("localforage")).default;
-                                const videoLogStore = localforage.createInstance({ name: "infinite-canvas", storeName: "video_generation_logs" });
+                                const videoLogStore = localforage.createInstance({ name: accountDatabaseName, storeName: "video_generation_logs" });
                                 await videoLogStore.iterate((log: any) => {
                                     if (log) {
                                         if (log.video && log.video.storageKey) {
@@ -212,7 +215,7 @@ export const useAssetStore = create<AssetStore>()(
                     const logKeys: string[] = [];
                     try {
                         const localforage = (await import("localforage")).default;
-                        const imageLogStore = localforage.createInstance({ name: "infinite-canvas", storeName: "image_generation_logs" });
+                        const imageLogStore = localforage.createInstance({ name: accountDatabaseName, storeName: "image_generation_logs" });
                         await imageLogStore.iterate((log: any) => {
                             if (log) {
                                 if (Array.isArray(log.images)) {
@@ -227,7 +230,7 @@ export const useAssetStore = create<AssetStore>()(
                                 }
                             }
                         });
-                        const videoLogStore = localforage.createInstance({ name: "infinite-canvas", storeName: "video_generation_logs" });
+                        const videoLogStore = localforage.createInstance({ name: accountDatabaseName, storeName: "video_generation_logs" });
                         await videoLogStore.iterate((log: any) => {
                             if (log) {
                                 if (log.video && log.video.storageKey) {

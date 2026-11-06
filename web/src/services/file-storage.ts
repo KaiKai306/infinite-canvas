@@ -1,5 +1,8 @@
 "use client";
 
+import { accountDatabaseName } from "@/lib/account-storage";
+
+
 import localforage from "localforage";
 import { nanoid } from "nanoid";
 
@@ -10,7 +13,7 @@ import { useUserStore } from "@/stores/use-user-store";
 
 export type UploadedFile = { url: string; storageKey: string; bytes: number; mimeType: string; width?: number; height?: number; durationMs?: number };
 
-const store = localforage.createInstance({ name: "infinite-canvas", storeName: "media_files" });
+const store = localforage.createInstance({ name: accountDatabaseName, storeName: "media_files" });
 const objectUrls = new Map<string, string>();
 let storageConfigPromise: Promise<StorageConfig> | null = null;
 

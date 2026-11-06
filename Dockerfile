@@ -1,5 +1,6 @@
 # 编译独立 ComfyUI Bridge 下载产物。
 FROM golang:1.25-alpine AS bridge-build
+ENV GOMAXPROCS=2
 
 WORKDIR /app/canvas-agent/native/comfy-bridge
 COPY canvas-agent/native/comfy-bridge ./
@@ -9,10 +10,11 @@ RUN mkdir -p /bridge && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /bri
 
 # 构建 Next.js 前端产物。
 FROM oven/bun:1.3.14 AS web-build
+ENV CIRCLE_NODE_TOTAL=3 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=2048
 
 WORKDIR /app/web
 COPY web/package.json web/bun.lock ./
-RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile --cache-dir=/root/.bun/install/cache
+RUN --mount=type=cache,id=happykai-bun-retry,target=/root/.bun/install/cache bun install --network-concurrency 8 --frozen-lockfile --cache-dir=/root/.bun/install/cache
 COPY VERSION /app/VERSION
 COPY CHANGELOG.md /app/CHANGELOG.md
 COPY web ./
@@ -23,6 +25,7 @@ RUN bun run build
 
 # 构建 Go 后端入口。
 FROM golang:1.25-alpine AS api-build
+ENV GOMAXPROCS=2
 
 WORKDIR /app
 COPY go.mod go.sum ./
