@@ -20,8 +20,7 @@ import { geminiTtsVoiceOptions, normalizeGeminiTtsVoice } from "@/lib/gemini-tts
 import { isMiniMaxTtsConfig, miniMaxTtsFormatOptions, normalizeMiniMaxTtsFormat, normalizeMiniMaxTtsSpeed, normalizeMiniMaxTtsVoice } from "@/lib/minimax-tts";
 import { miniMaxTtsVoiceOptions } from "@/lib/minimax-tts-voices";
 import { isMimoPresetTtsModel, isMimoTtsModel, isMimoVoiceCloneModel, isMimoVoiceDesignModel, mimoTtsFormatOptions, mimoTtsVoiceOptions } from "@/lib/mimo-tts";
-import { isWorkflowProtocol, modelChannelApiKeyUrls, modelChannelDefaultBaseUrls, modelChannelProtocolOptions } from "@/lib/model-channel";
-import { startTokenDanceOAuth } from "@/lib/tokendance-oauth";
+import { isWorkflowProtocol, modelChannelDefaultBaseUrls, modelChannelProtocolOptions } from "@/lib/model-channel";
 import type { WorkflowChannelData, WorkflowEntry } from "@/lib/workflow-channel";
 import { listWorkflowChannels, readWorkflowChannel, replaceWorkflowChannels, saveWorkflowChannel } from "@/services/workflow-channel-storage";
 import { channelProtocolForConfig, filterChannelModelsByCapability, normalizeLocalChannels, useConfigStore, useEffectiveConfig, type AiConfig, type LocalModelChannel, type ModelCapabilities, type ModelCapability } from "@/stores/use-config-store";
@@ -304,11 +303,6 @@ export function AppConfigModal() {
         void useChannelTranslationStore.getState().save(user?.id || "guest", id, "").catch((error) => message.error(error instanceof Error ? error.message : "删除传参配置失败"));
     };
 
-    const loginTokenDance = (channelId: string) => {
-        void startTokenDanceOAuth({ target: "local", channelId })
-            .catch((error) => message.error(error instanceof Error ? error.message : "TokenDance 登录失败"));
-    };
-
     const openLocalModelSelector = (channel: LocalModelChannel) => setModelSelectChannelId(channel.id);
 
     const closeLocalModelSelector = () => setModelSelectChannelId("");
@@ -487,20 +481,6 @@ export function AppConfigModal() {
                                                 <Button size="small" danger disabled={index === 0 && normalizeLocalChannels(config).length === 1} onClick={() => removeLocalChannel(channel.id)}>
                                                     删除
                                                 </Button>
-                                                {channel.protocol === "tokendance" || modelChannelApiKeyUrls[channel.protocol] ? (
-                                                    <div className="w-full md:absolute md:left-0 md:top-8">
-                                                        <Button
-                                                            block
-                                                            type="primary"
-                                                            size="small"
-                                                            href={channel.protocol === "tokendance" ? undefined : modelChannelApiKeyUrls[channel.protocol]}
-                                                            target={channel.protocol === "tokendance" ? undefined : "_blank"}
-                                                            onClick={channel.protocol === "tokendance" ? () => void loginTokenDance(channel.id) : undefined}
-                                                        >
-                                                            {channel.protocol === "tokendance" ? "登录" : "获取 API Key"}
-                                                        </Button>
-                                                    </div>
-                                                ) : null}
                                             </div>
                                         </div>
                                         <div className="text-xs text-stone-500">{isWorkflowProtocol(channel.protocol) ? `已保存 ${channel.workflowSummaries?.length || 0} 条工作流` : `已保存 ${channel.models.length} 个模型`}</div>

@@ -11,8 +11,7 @@ import { ChannelModelSelectorModal } from "@/components/channel-model-selector-m
 import { videoResolutionOptions } from "@/components/video-settings-panel";
 import type { WorkflowChannelSettings } from "@/components/workflow/workflow-channel-pane";
 import { useAutoDLWorkflowNames } from "@/hooks/use-autodl-workflow";
-import { isWorkflowProtocol, modelChannelApiKeyUrls, modelChannelDefaultBaseUrls, modelChannelProtocolOptions } from "@/lib/model-channel";
-import { startTokenDanceOAuth } from "@/lib/tokendance-oauth";
+import { isWorkflowProtocol, modelChannelDefaultBaseUrls, modelChannelProtocolOptions } from "@/lib/model-channel";
 import { fetchAdminSettings, fetchChannelModels, measureAdminStorageProvider, saveAdminSettings, testChannelModel, type AdminModelChannel, type AdminModelCost, type AdminSettings, type AdminStorageProvider } from "@/services/api/admin";
 import { clearStorageConfigCache as clearMediaStorageConfigCache } from "@/services/file-storage";
 import { clearStorageConfigCache as clearImageStorageConfigCache } from "@/services/image-storage";
@@ -98,7 +97,6 @@ export default function AdminSettingsPage() {
     const channelBaseUrl = Form.useWatch("baseUrl", channelForm);
     const modelLabel = useAutoDLWorkflowNames([...channels, { protocol: channelProtocol, baseUrl: channelBaseUrl }]);
     const publicModelLabel = (model: string) => modelLabel(model, channels.find((channel) => channel.protocol === "autodl" && channel.models.includes(model)));
-    const channelApiKeyUrl = channelProtocol ? modelChannelApiKeyUrls[channelProtocol] : undefined;
     const channelModels = useMemo(() => collectChannelModels(channels), [channels]);
     const channelWorkflows = useMemo(() => collectChannelWorkflows(channels), [channels]);
     const channelTableData = useMemo(() => channels.map((channel, index) => ({ ...channel, _index: index, _rowKey: `${index}-${channel.name}-${channel.baseUrl}` })), [channels]);
@@ -243,14 +241,6 @@ export default function AdminSettingsPage() {
         setIsChannelDrawerOpen(false);
         setEditingChannelIndex(null);
         channelForm.resetFields();
-    };
-
-    const loginTokenDance = () => {
-        void startTokenDanceOAuth({
-            target: "admin",
-            draft: channelForm.getFieldsValue(true) as unknown as Record<string, unknown>,
-            editingChannelIndex,
-        }).catch((error) => message.error(error instanceof Error ? error.message : "TokenDance 登录失败"));
     };
 
     const saveChannel = async () => {
@@ -1003,24 +993,7 @@ export default function AdminSettingsPage() {
                             <Col span={24}>
                                 <Form.Item
                                     name="baseUrl"
-                                    label={
-                                        <span className="relative inline-flex items-center">
-                                            接口地址
-                                            {channelProtocol === "tokendance" || channelApiKeyUrl ? (
-                                                <span className="absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap">
-                                                    <Button
-                                                        type="primary"
-                                                        size="small"
-                                                        href={channelProtocol === "tokendance" ? undefined : channelApiKeyUrl}
-                                                        target={channelProtocol === "tokendance" ? undefined : "_blank"}
-                                                        onClick={channelProtocol === "tokendance" ? () => void loginTokenDance() : undefined}
-                                                    >
-                                                        {channelProtocol === "tokendance" ? "登录" : "获取 API Key"}
-                                                    </Button>
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                    }
+                                    label="接口地址"
                                     rules={[{ required: true, message: "请输入接口地址" }]}
                                 >
                                     <Input />
