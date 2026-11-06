@@ -79,10 +79,10 @@ export default function AdminAICallLogsPage() {
                     },
                 },
             });
-            message.success(checked ? "已开启本地直连日志上报" : "已关闭本地直连日志上报");
+            message.success(checked ? "已开启浏览器直连日志上报" : "已关闭浏览器直连日志上报");
         } catch (error) {
             setLocalDirectReportEnabled(previous);
-            message.error(error instanceof Error ? error.message : "保存本地直连日志设置失败");
+            message.error(error instanceof Error ? error.message : "保存浏览器直连日志设置失败");
         } finally {
             setSavingLocalDirectReport(false);
         }
@@ -138,7 +138,7 @@ export default function AdminAICallLogsPage() {
                                 重置
                             </Button>
                             <div className="flex h-8 items-center gap-2 rounded-md border border-stone-200 px-3 dark:border-stone-800">
-                                <Typography.Text className="whitespace-nowrap text-sm">本地直连日志</Typography.Text>
+                                <Typography.Text className="whitespace-nowrap text-sm">浏览器直连日志</Typography.Text>
                                 <Switch size="small" checked={localDirectReportEnabled} loading={savingLocalDirectReport} onChange={(checked) => void updateLocalDirectReport(checked)} />
                             </div>
                             <div className="flex h-8 items-center gap-2">

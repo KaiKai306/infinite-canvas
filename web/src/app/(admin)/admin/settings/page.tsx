@@ -14,7 +14,7 @@ import { useAutoDLWorkflowNames } from "@/hooks/use-autodl-workflow";
 import { isWorkflowProtocol, modelChannelDefaultBaseUrls, modelChannelProtocolOptions } from "@/lib/model-channel";
 import { fetchAdminSettings, fetchChannelModels, measureAdminStorageProvider, saveAdminSettings, testChannelModel, type AdminModelChannel, type AdminModelCost, type AdminSettings, type AdminStorageProvider } from "@/services/api/admin";
 import { clearStorageConfigCache as clearMediaStorageConfigCache } from "@/services/file-storage";
-import { clearStorageConfigCache as clearImageStorageConfigCache } from "@/services/image-storage";
+import { clearStorageConfigCache as clearImageStorageConfigCache, loadStorageConfig, type StorageConfig } from "@/services/image-storage";
 import { useUserStore } from "@/stores/use-user-store";
 import { filterChannelModelsByCapability, useConfigStore, type ModelCapabilities } from "@/stores/use-config-store";
 
@@ -63,6 +63,8 @@ type EditorMode = "visual" | "json";
 
 export default function AdminSettingsPage() {
     const token = useUserStore((state) => state.token);
+    const newAPIEnabled = useConfigStore((state) => state.publicSettings?.auth.newApiEnabled === true);
+    const [runtimeStorage, setRuntimeStorage] = useState<StorageConfig | null>(null);
     const { message } = App.useApp();
     const [form] = Form.useForm<AdminSettings>();
     const [activeTab, setActiveTab] = useState<SettingsTabKey>("public");
@@ -108,7 +110,9 @@ export default function AdminSettingsPage() {
         if (!token) return;
         setIsLoading(true);
         try {
-            const data = normalizeSettings(await fetchAdminSettings(token));
+            const [settings, storage] = await Promise.all([fetchAdminSettings(token), loadStorageConfig().catch(() => null)]);
+            const data = normalizeSettings(settings);
+            setRuntimeStorage(storage);
             form.setFieldsValue(data);
             setChannels(data.private.channels);
             setModelCosts(data.public.modelChannel.modelCosts);
@@ -176,6 +180,7 @@ export default function AdminSettingsPage() {
             const saved = normalizeSettings(await saveAdminSettings(token, values));
             clearImageStorageConfigCache();
             clearMediaStorageConfigCache();
+            setRuntimeStorage(await loadStorageConfig().catch(() => null));
             const merged = mergeChannelApiKeys(values.private.channels, saved);
             form.setFieldsValue(merged);
             setChannels(merged.private.channels);
@@ -497,18 +502,18 @@ export default function AdminSettingsPage() {
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name={["public", "modelChannel", "allowCustomChannel"]} label="是否允许用户自定义渠道" extra="开启后，前端可提供用户自定义 baseUrl 直连模式" valuePropName="checked">
+                                        <Form.Item name={["public", "modelChannel", "allowCustomChannel"]} label="允许用户配置个人模型渠道" extra="用户填写本人 Base URL 和 API Key；登录后的图片请求经本站服务器，游客由浏览器直接请求。与站点云存储权限分开。" valuePropName="checked">
                                             <Switch />
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name={["public", "modelChannel", "allowUserRemoteChannel"]} label="是否允许普通用户使用云端渠道" extra="关闭后，普通用户只能使用本地直连；管理员仍可使用云端渠道" valuePropName="checked">
+                                        <Form.Item name={["public", "modelChannel", "allowUserRemoteChannel"]} label="允许普通用户使用站点模型渠道" extra="站点渠道由管理员提供模型凭据；关闭后普通用户使用个人渠道，仍可按权限使用站点云存储。管理员不受此开关限制。" valuePropName="checked">
                                             <Switch />
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
-                                        <Form.Item name={["public", "auth", "allowRegister"]} label="是否允许用户注册" extra="关闭后隐藏注册入口，注册接口也会拒绝新用户创建" valuePropName="checked">
-                                            <Switch />
+                                        <Form.Item name={["public", "auth", "allowRegister"]} label="是否允许本站独立注册" extra={newAPIEnabled ? "当前使用 New API 账号登录，本站独立注册由部署配置强制关闭。有效 New API 用户首次登录仍会建立本站账号映射。" : "关闭后隐藏注册入口，注册接口也会拒绝新用户创建。"} valuePropName="checked">
+                                            <Switch disabled={newAPIEnabled} />
                                         </Form.Item>
                                     </Col>
                                     <Col span={24}>
@@ -662,7 +667,7 @@ export default function AdminSettingsPage() {
                                 <Card size="small" title="AI 调用日志">
                                     <Row gutter={16}>
                                         <Col xs={24} md={6}>
-                                            <Form.Item name={["private", "aiLog", "localDirectReportEnabled"]} label="本地直连日志上报" valuePropName="checked" extra="关闭后本地直连不上报；云端渠道仍默认记录。">
+                                            <Form.Item name={["private", "aiLog", "localDirectReportEnabled"]} label="浏览器直连日志上报（兼容）" valuePropName="checked" extra="仅控制兼容的浏览器日志上报；登录后经服务器的个人/站点渠道调用仍按服务端日志规则记录，不受此开关控制。">
                                                 <Switch />
                                             </Form.Item>
                                         </Col>
@@ -684,24 +689,30 @@ export default function AdminSettingsPage() {
                                     </Row>
                                 </Card>
                                 <Card size="small" title="数据存储">
+                                    <Typography.Paragraph type="secondary">
+                                        站点模型渠道与站点存储是两套权限。登录用户可使用本人模型 Key，并将图片保存到这里配置的私有存储；游客不使用站点归档。账号与画布数据仍由本站保存，图片文件在对象存储，预览和下载默认经本站鉴权代理。
+                                    </Typography.Paragraph>
+                                    <Typography.Paragraph type="secondary">
+                                        {runtimeStorage?.serverImageArchive ? "服务端图片归档已启用：图片任务先归档再完成；存储故障时保留结果并重试，不重新请求模型。下方素材同步开关不会关闭此任务归档。" : "服务端图片归档未启用或状态尚未读取。"} 音频、视频及独立工作流不在此归档状态的承诺范围内。
+                                    </Typography.Paragraph>
                                     <Row gutter={16}>
                                         <Col xs={24} md={6}>
-                                            <Form.Item label="存储模式" extra="根据对象存储配置和启用状态自动识别。">
-                                                <Input disabled value="自动识别 (动态切换)" />
+                                            <Form.Item label="当前生效存储" extra="显示已保存配置的运行状态，编辑后保存以刷新。">
+                                                <Input disabled value={runtimeStorage ? runtimeStorage.mode === "server_sqlite_s3" ? "站点云存储 + 账号数据" : runtimeStorage.mode === "hybrid" ? "用户自备存储 / 浏览器本地" : "浏览器本地存储" : "读取中"} />
                                             </Form.Item>
                                         </Col>
                                         <Col xs={24} md={6}>
-                                            <Form.Item name={["private", "storage", "allowUserProvider"]} label="允许用户配置 S3/WebDAV" valuePropName="checked">
+                                            <Form.Item name={["private", "storage", "allowUserProvider"]} label="允许用户自备 S3/WebDAV" extra="当前统一使用站点存储时可保持关闭；打开不会改变服务端图片任务当前的站点归档配置。" valuePropName="checked">
                                                 <Switch />
                                             </Form.Item>
                                         </Col>
                                         <Col xs={24} md={6}>
-                                            <Form.Item name={["private", "storage", "allowUserGlobalProvider"]} label="允许用户使用全局配置渠道" valuePropName="checked">
+                                            <Form.Item name={["private", "storage", "allowUserGlobalProvider"]} label="允许登录用户使用站点存储" extra="这是文件存储权限，不是模型渠道权限。当前统一归档方案需要保持开启，否则普通用户的图片归档会受阻。" valuePropName="checked">
                                                 <Switch />
                                             </Form.Item>
                                         </Col>
                                         <Col xs={24} md={6}>
-                                            <Form.Item name={["private", "storage", "autoSyncAllAssets"]} label="全部素材云端同步" extra="上传、导入及生成的图片、视频、音频自动同步到可用云存储；关闭保持原有行为" valuePropName="checked">
+                                            <Form.Item name={["private", "storage", "autoSyncAllAssets"]} label="素材自动同步" extra="控制受支持素材的前端自动转存；不关闭单独启用的服务端图片任务归档，也不保证音频/视频关闭网页后完成上传。" valuePropName="checked">
                                                 <Switch />
                                             </Form.Item>
                                         </Col>

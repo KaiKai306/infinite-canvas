@@ -5,10 +5,11 @@ import { AppProviders } from "@/components/layout/app-providers";
 import "antd/dist/reset.css";
 import "./globals.css";
 import React from "react";
+import { SITE_NAME } from "@/constant/site";
 
 export const metadata: Metadata = {
-    title: "无限画布",
-    description: "一个无限画布创作工具",
+    title: SITE_NAME,
+    description: "Kai 的 AI 图像创作画布与工作台",
 };
 
 export default function RootLayout({

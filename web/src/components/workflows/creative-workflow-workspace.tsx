@@ -1812,14 +1812,14 @@ function describeModelSelection(config: AiConfig, modelName: string, channelId: 
     const selectedModel = modelName || "未选择模型";
     if (config.channelMode === "local") {
         const channel = localChannelForActiveModel({ ...config, model: selectedModel, activeChannelId: channelId });
-        return { channelName: channel?.name || "本地直连", modelName: selectedModel };
+        return { channelName: channel?.name || "个人渠道", modelName: selectedModel };
     }
     const channel =
         config.publicChannels.find((item) => item.id === channelId && item.models?.includes(selectedModel)) ||
         config.publicChannels.find((item) => item.models?.includes(selectedModel)) ||
         config.publicChannels.find((item) => item.id === channelId) ||
         config.publicChannels[0];
-    return { channelName: channel?.name || "云端渠道", modelName: selectedModel };
+    return { channelName: channel?.name || "站点渠道", modelName: selectedModel };
 }
 
 function createVariable(key = "", label = "", type: WorkflowVariableType = "text"): WorkflowVariable {

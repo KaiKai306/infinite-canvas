@@ -85,7 +85,7 @@ function agnesBaseUrl(baseUrl: string) {
 
 function aiHeaders(config: AiConfig) {
     const token = useUserStore.getState().token;
-    if (config.channelMode === "remote" && !token) throw new Error("请先登录后再使用云端渠道");
+    if (config.channelMode === "remote" && !token) throw new Error("请先登录后再使用站点渠道");
     if (config.channelMode === "remote") return { Authorization: `Bearer ${token}`, ...(channelIdForActiveModel(config) ? { "X-Model-Channel-ID": channelIdForActiveModel(config) } : {}) };
     if (token) return { Authorization: `Bearer ${token}`, ...(channelIdForActiveModel(config) ? { "X-User-Model-Channel-ID": channelIdForActiveModel(config) } : {}) };
     if (isGeminiConfig(config)) return geminiDirectHeaders(config);
@@ -982,7 +982,7 @@ async function writeVideoAICallLog(config: AiConfig, model: string, endpoint: st
             method,
             model,
             channelId: channel?.id || config.activeChannelId || "",
-            channelName: channel?.name || "本地直连",
+            channelName: channel?.name || "个人渠道",
             status,
             durationMs: Date.now() - startedAt,
             credits: 0,

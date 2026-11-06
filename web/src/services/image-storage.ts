@@ -58,6 +58,7 @@ export type StorageConfig = {
     allowUserProvider: boolean;
     allowUserGlobalProvider: boolean;
     autoSyncAllAssets: boolean;
+    serverImageArchive?: boolean;
 };
 
 const store = localforage.createInstance({ name: accountDatabaseName, storeName: "image_files" });

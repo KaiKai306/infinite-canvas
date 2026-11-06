@@ -536,7 +536,7 @@ export function aiApiUrl(config: AiConfig, path: string) {
 
 export function aiHeaders(config: AiConfig, contentType?: string) {
     const token = useUserStore.getState().token;
-    if (config.channelMode === "remote" && !token) throw new Error("请先登录后再使用云端渠道");
+    if (config.channelMode === "remote" && !token) throw new Error("请先登录后再使用站点渠道");
     if (config.channelMode === "remote") {
         return {
             Authorization: `Bearer ${token}`,
@@ -577,7 +577,7 @@ async function writeLocalAICallLog(config: AiConfig, endpoint: string, startedAt
             method: "POST",
             model: config.model,
             channelId: channel?.id || config.activeChannelId || "",
-            channelName: channel?.name || "本地直连",
+            channelName: channel?.name || "个人渠道",
             status,
             durationMs: Date.now() - startedAt,
             credits: 0,
@@ -1072,7 +1072,7 @@ export async function createCanvasImageTask(config: AiConfig & { seedIndex?: num
 
 export async function pollCanvasImageTaskStatus(taskId: string, signal?: AbortSignal): Promise<CanvasImageTask> {
     const token = useUserStore.getState().token;
-    if (!token) throw new Error("请先登录后再使用云端渠道");
+    if (!token) throw new Error("请先登录后再使用站点渠道");
     const response = await fetch(`/api/v1/canvas/image-tasks/${encodeURIComponent(taskId)}`, {
         signal,
         headers: { Authorization: `Bearer ${token}` },

@@ -115,7 +115,7 @@ export type ModelCapabilities = Partial<Record<string, ModelCapability>>;
 
 export const defaultConfig: AiConfig = {
     channelMode: "local",
-    baseUrl: "https://api.openai.com",
+    baseUrl: "https://api.happykai.cn",
     apiKey: "",
     model: "gpt-image-2",
     imageModel: "gpt-image-2",
@@ -551,7 +551,7 @@ export function normalizeLocalChannels(config: Partial<AiConfig>): LocalModelCha
         } : {}),
     }));
     if (!normalized.length) {
-        normalized.push({ id: "local-default", protocol: "openai", name: "本地直连", baseUrl: config.baseUrl || defaultConfig.baseUrl, apiKey: config.apiKey || "", models: Array.isArray(config.models) ? config.models.filter(Boolean) : [] });
+        normalized.push({ id: "local-default", protocol: "openai", name: "默认个人渠道", baseUrl: config.baseUrl || defaultConfig.baseUrl, apiKey: config.apiKey || "", models: Array.isArray(config.models) ? config.models.filter(Boolean) : [] });
     }
     return normalized;
 }

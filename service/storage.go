@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
+	"github.com/tigerowo/infinite-canvas/config"
 	"github.com/tigerowo/infinite-canvas/model"
 	"github.com/tigerowo/infinite-canvas/repository"
 	"gorm.io/gorm"
@@ -139,7 +140,7 @@ func PublicStorageConfig() (model.PublicStorageConfig, error) {
 		mode = "hybrid"
 	}
 
-	return model.PublicStorageConfig{PublicStorageSetting: model.PublicStorageSetting{Mode: mode, AllowUserProvider: storage.AllowUserProvider, AllowUserGlobalProvider: storage.AllowUserGlobalProvider}, AutoSyncAllAssets: storage.AutoSyncAllAssets}, nil
+	return model.PublicStorageConfig{PublicStorageSetting: model.PublicStorageSetting{Mode: mode, AllowUserProvider: storage.AllowUserProvider, AllowUserGlobalProvider: storage.AllowUserGlobalProvider}, AutoSyncAllAssets: storage.AutoSyncAllAssets, ServerImageArchive: config.Cfg.ServerImageArchive}, nil
 }
 
 // StorageObjectInfo 获取存储对象元数据。

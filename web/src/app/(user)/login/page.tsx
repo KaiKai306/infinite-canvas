@@ -1,5 +1,7 @@
 "use client";
 
+import { SITE_NAME } from "@/constant/site";
+
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { App, Button, Form, Input, Segmented, Space } from "antd";
 import { useSearchParams } from "next/navigation";
@@ -97,10 +99,10 @@ function LoginContent() {
                             mask: "url(/logo.svg) center / contain no-repeat",
                             WebkitMask: "url(/logo.svg) center / contain no-repeat",
                         }}
-                        aria-label="无限画布"
+                        aria-label={SITE_NAME}
                     />
-                    <h1 className="text-3xl font-semibold tracking-normal text-stone-950 dark:text-stone-100">账号登录</h1>
-                    <p className="mt-3 text-base leading-7 text-stone-500 dark:text-stone-400">{newAPIEnabled ? "使用 HappyKai New API 账号登录，画布与素材按账号保存。" : "支持账号密码和 Linux.do 登录。"}</p>
+                    <h1 className="text-3xl font-semibold tracking-normal text-stone-950 dark:text-stone-100">{SITE_NAME}</h1>
+                    <p className="mt-3 text-base leading-7 text-stone-500 dark:text-stone-400">{newAPIEnabled ? "使用 HappyKai New API 账号登录，画布、历史和模型配置随账号保存；模型 API Key 仍需本人填写。" : "使用账号密码登录。"}</p>
                 </div>
 
                 <Form<LoginFormValues> layout="vertical" size="large" requiredMark={false} onFinish={submit}>

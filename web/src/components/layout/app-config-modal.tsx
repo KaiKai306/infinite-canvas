@@ -1,6 +1,6 @@
 "use client";
 
-import { App, Button, Form, Input, Modal, Radio, Segmented, Select, Switch } from "antd";
+import { App, Button, Collapse, Form, Input, Modal, Radio, Segmented, Select, Switch } from "antd";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
@@ -57,6 +57,8 @@ export function AppConfigModal() {
     const [remoteStorageSyncEnabled, setRemoteStorageSyncEnabled] = useState(false);
     const [remoteWebDAVStorageSyncEnabled, setRemoteWebDAVStorageSyncEnabled] = useState(false);
     const [allowUserStorageProvider, setAllowUserStorageProvider] = useState(false);
+    const [serverImageArchive, setServerImageArchive] = useState(false);
+    const [siteStorageAvailable, setSiteStorageAvailable] = useState(false);
     const [userStorage, setUserStorage] = useState(() => defaultUserStorageProvider());
     const [userWebDAVStorage, setUserWebDAVStorage] = useState(() => defaultUserWebDAVStorageProvider());
     const [measuringStorageType, setMeasuringStorageType] = useState<"s3" | "webdav" | null>(null);
@@ -171,7 +173,11 @@ export function AppConfigModal() {
         let canceled = false;
         void loadStorageConfig()
             .then((storage) => {
-                if (!canceled) setAllowUserStorageProvider(storage.allowUserProvider === true);
+                if (!canceled) {
+                    setAllowUserStorageProvider(storage.allowUserProvider === true);
+                    setServerImageArchive(storage.serverImageArchive === true);
+                    setSiteStorageAvailable(storage.mode === "server_sqlite_s3" && storage.allowUserGlobalProvider);
+                }
             })
             .catch(() => {
                 if (!canceled) setAllowUserStorageProvider(false);
@@ -226,7 +232,7 @@ export function AppConfigModal() {
             clearFileStorageCache();
             setConfigDialogOpen(false);
             if ((config.syncStorageConfig || config.syncWebDAVStorageConfig) && !token) message.warning("请登录后再同步配置");
-            else if (localIncomplete || modelIncomplete) message.warning("部分模型或本地渠道密钥尚未配置完整，配置已保存");
+            else if (localIncomplete || modelIncomplete) message.warning("配置已保存；使用前请补全对应功能的模型与个人渠道密钥，不使用的视频或文本功能可暂不配置。");
             else message.success(shouldPromptContinue ? "配置已保存，请继续刚才的请求" : "配置已保存");
             clearPromptContinue();
         } catch (error) {
@@ -438,6 +444,17 @@ export function AppConfigModal() {
         >
             <div className="pt-1">
                 <Form layout="vertical" requiredMark={false}>
+                    <div className="mb-5 space-y-2 rounded-lg border border-[var(--ant-color-border)] p-3 text-xs leading-6 text-[var(--ant-color-text-secondary)]">
+                        <div className="text-sm font-medium text-[var(--ant-color-text)]">{isLoggedIn ? "账号与图片保存" : "游客模式：仅当前浏览器保存"}</div>
+                        {isLoggedIn ? <>
+                            <p>个人渠道使用你填写的 API Key。登录后的图片任务由本站服务器提交，关闭网页后已接受的任务仍继续处理；渠道配置及 API Key 随账号保存。New API 登录不会自动创建模型 Key。</p>
+                            <p>{serverImageArchive && siteStorageAvailable ? "已启用服务端图片归档：生成结果保存到站点云存储，画布与历史随账号同步，无须填写存储密钥。私有图片预览和下载经过本站服务器鉴权。" : "图片保存取决于站点存储配置；当前未确认服务端图片归档可用，请勿仅依赖关闭网页后的保存。"}</p>
+                        </> : <>
+                            <p>图片请求由浏览器直接发往个人渠道，需要渠道允许浏览器跨域访问。配置、画布和结果保存在此浏览器，关闭页面可能中断请求，不会使用本站云存储归档。</p>
+                            <p>登录后可以按账号保存；游客数据不会自动合并到账号，需先导出再导入。</p>
+                        </>}
+                        <p>本地 Codex 操作画布：进入具体画布，打开助手并切换到 Codex，点击“连接教程”。下方的接口兼容选项不负责建立连接。</p>
+                    </div>
                     {allowCustomChannel && canUseRemoteChannel ? (
                         <Form.Item label="渠道模式" className="mb-5">
                             <Segmented
@@ -446,8 +463,8 @@ export function AppConfigModal() {
                                 value={effectiveMode}
                                 onChange={(value) => updateConfig("channelMode", value as AiConfig["channelMode"])}
                                 options={[
-                                    { label: "本地直连", value: "local" },
-                                    { label: "云端渠道", value: "remote" },
+                                    { label: "个人渠道", value: "local" },
+                                    { label: "站点渠道", value: "remote" },
                                 ]}
                             />
                         </Form.Item>
@@ -457,8 +474,8 @@ export function AppConfigModal() {
                             <div className="mb-5 space-y-3 rounded-lg border border-stone-200 p-3 dark:border-stone-800">
                                 <div className="flex items-center justify-between gap-3">
                                     <div>
-                                        <div className="text-sm font-medium">本地模型渠道</div>
-                                        <div className="mt-1 text-xs text-stone-500">可为生图、视频、文本、音频分别选择不同渠道的模型。</div>
+                                        <div className="text-sm font-medium">个人模型渠道</div>
+                                        <div className="mt-1 text-xs text-stone-500">填写本人的渠道地址与 API Key，可为图片、视频、文本、音频分别选择模型。首个默认地址为 HappyKai New API，已有配置保持原样。</div>
                                     </div>
                                     <Button size="small" onClick={addLocalChannel}>
                                         新增渠道
@@ -501,8 +518,8 @@ export function AppConfigModal() {
                         </>
                     ) : (
                         <div className="mb-5 rounded-lg border border-stone-200 p-3 text-sm text-stone-500 dark:border-stone-800">
-                            <div className="font-medium text-stone-900 dark:text-stone-100">云端渠道</div>
-                            <div className="mt-1">由系统后台渠道转发请求，当前可用 {modelChannel?.availableModels.length || 0} 个模型。</div>
+                            <div className="font-medium text-stone-900 dark:text-stone-100">站点渠道</div>
+                            <div className="mt-1">使用管理员提供的模型渠道，当前可用 {modelChannel?.availableModels.length || 0} 个模型。此选项不决定图片保存位置。</div>
                         </div>
                     )}
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -576,12 +593,12 @@ export function AppConfigModal() {
                             </Radio>
                         </Radio.Group>
                     </Form.Item>
-                    <div className="mb-4 grid gap-3 md:grid-cols-4">
-                        <FeatureSwitch title="流式传输" description="开启后请求中追加 stream，支持读取中间图片并避免长时间无数据。" checked={Boolean(config.streamImages)} onChange={(checked) => updateConfig("streamImages", checked ? "1" : "")} />
-                        <FeatureSwitch title="返回 Base64 图片" description="开启后 Image API 请求会追加 response_format: b64_json。" checked={Boolean(config.responseFormatB64Json)} onChange={(checked) => updateConfig("responseFormatB64Json", checked ? "1" : "")} />
-                        <FeatureSwitch title="Codex CLI 兼容模式" description="开启后减少不兼容参数，并追加防提示词改写前缀。" checked={Boolean(config.codexCli)} onChange={(checked) => updateConfig("codexCli", checked ? "1" : "")} />
+                    <Collapse className="mb-4" size="small" items={[{ key: "advanced", label: "接口与生成高级选项", children: <div className="grid gap-3 md:grid-cols-2">
+                        <FeatureSwitch title="流式传输" description="仅在渠道支持时开启；影响上游响应方式，不决定后台任务或云端保存。" checked={Boolean(config.streamImages)} onChange={(checked) => updateConfig("streamImages", checked ? "1" : "")} />
+                        <FeatureSwitch title="返回 Base64 图片" description="请求上游返回 Base64；不决定本地或云端保存。常规使用可保持关闭。" checked={Boolean(config.responseFormatB64Json)} onChange={(checked) => updateConfig("responseFormatB64Json", checked ? "1" : "")} />
+                        <FeatureSwitch title="Codex CLI 接口兼容" description="仅针对特定接口减少参数并约束提示词改写，不是本地 Codex 画布连接开关。" checked={Boolean(config.codexCli)} onChange={(checked) => updateConfig("codexCli", checked ? "1" : "")} />
                         <FeatureSwitch title="视频音频生成" description="视频默认生成同步音频。" checked={config.videoGenerateAudio === "true"} onChange={(checked) => updateConfig("videoGenerateAudio", String(checked))} />
-                    </div>
+                    </div> }]} />
                     {canUseUserStorageProvider ? (
                         <>
                             <section className="mb-5 mt-4 rounded-xl border border-stone-200 bg-stone-50/70 p-3 dark:border-stone-800 dark:bg-stone-900/50">

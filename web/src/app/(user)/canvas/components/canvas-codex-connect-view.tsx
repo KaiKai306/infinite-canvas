@@ -9,7 +9,8 @@ import { useThemeStore } from "@/stores/use-theme-store";
 import type { useCodexAgent } from "../agent/use-codex-agent";
 
 const pluginCommand = "codex plugin marketplace add https://github.com/tigerowo/infinite-canvas.git\ncodex plugin add canvas-agent@infinite-canvas";
-const startCommand = "npx -y @tigerowo/canvas-agent@latest";
+const startCommand = "npx -y @tigerowo/canvas-agent@0.1.3";
+const mcpCommand = "codex mcp add infinite-canvas -- npx -y @tigerowo/canvas-agent@0.1.3 mcp";
 
 export function CanvasCodexConnectView({ agent, onChat }: {
     agent: Pick<ReturnType<typeof useCodexAgent>, "connection" | "status" | "error" | "connect" | "disconnect">;
@@ -32,26 +33,27 @@ export function CanvasCodexConnectView({ agent, onChat }: {
     return (
         <div className="space-y-4">
             <div>
-                <h2 className="text-base font-semibold leading-6">连接本地 Agent</h2>
-                <p className="mt-1 text-xs leading-5" style={{ color: theme.node.muted }}>按使用场景选择一种连接方式。</p>
+                <h2 className="text-base font-semibold leading-6">让本地 Codex 操作当前画布</h2>
+                <p className="mt-1 text-xs leading-5" style={{ color: theme.node.muted }}>浏览器与本地 Agent 在同一台电脑运行，需要 Node.js 22+。本站部署在云端，连接服务运行在你的电脑，无须在服务器安装 Codex。</p>
             </div>
             <div className="space-y-2 px-3 py-2.5">
-                <h3 className="text-sm font-medium">方式一：在 Codex 中使用插件</h3>
-                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>安装本项目的 Infinite Canvas 插件后，让 Codex 打开并连接画布。插件会启动本地 Agent，并自动带入连接信息。</p>
-                {commandBlock(pluginCommand)}
-                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>安装插件后新建 Codex 对话，说“帮我打开并连接到 Infinite Canvas”。</p>
+                <h3 className="text-sm font-medium">方式一：已有 Codex，直接添加画布工具</h3>
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>在本机终端注册 MCP（只需一次），然后新建 Codex 对话加载画布工具。已有同名插件或 MCP 时二选一，避免重复安装。</p>
+                {commandBlock(mcpCommand, "注册 MCP")}
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>每次使用先启动下面的本地服务并保持终端运行，将 Local URL 和 Connect token 填入下方并连接。默认地址是 http://127.0.0.1:3210；浏览器询问本地网络权限时需允许。</p>
+                {commandBlock(startCommand, "启动服务")}
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>保持当前画布网页打开，对本地 Codex 说：“通过 infinite-canvas 读取当前画布，再添加一个文字节点”。先确认读取和编辑正常，再让它触发生图。仅启动服务不会给外部 Codex 安装工具。</p>
             </div>
             <div className="space-y-2 rounded-lg border px-3 py-2.5" style={{ borderColor: theme.node.stroke }}>
-                <div className="text-xs font-medium">Codex 插件提醒</div>
-                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>安装插件或手动添加 MCP 后，画布工具才会进入 Codex 上下文。仅启动本地 Agent 不会安装 MCP。</p>
-                {commandBlock("codex plugin remove canvas-agent", "移除插件")}
-                {commandBlock("codex mcp remove infinite-canvas", "移除 MCP")}
+                <div className="text-xs font-medium">账号与生图使用哪套配置</div>
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>Codex 的理解与规划使用本机 Codex 的模型配置；触发画布生图时使用网页当前账号及选中的图片渠道。建议先登录本站，结果才能按账号归档；操作画布时网页需保持打开，已提交的服务端图片任务不受关页影响。</p>
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>Connect token 只用于本机连接，不是 New API Key，不要分享。只连接目标画布，避免多个标签同时连接造成目标不明确。</p>
             </div>
             <div className="space-y-2 px-3 py-2.5">
-                <h3 className="text-sm font-medium">方式二：直接运行 Agent</h3>
-                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>在终端运行以下命令，自动下载并启动 Agent。首次启动生成并保存 Token，以后运行同一命令即可。</p>
-                {commandBlock(startCommand)}
-                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>首次直接连接可粘贴终端中的 Connect token，网页会自动记住；通过插件打开时无需手填。</p>
+                <h3 className="text-sm font-medium">方式二：安装上游插件自动连接</h3>
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>与方式一二选一。插件包含 MCP 和自动打开画布的指引；安装后新建 Codex 对话，明确提供本站或当前画布的完整地址。</p>
+                {commandBlock(pluginCommand, "安装插件")}
+                <p className="text-xs leading-5" style={{ color: theme.node.muted }}>例如：“帮我打开并连接 https://canvas.happykai.cn 的画布”。也可只启动本地服务，通过网页内的 Codex 对话操作，无须给外部 Codex 注册 MCP。</p>
             </div>
             <div className="rounded-lg border p-3" style={{ borderColor: theme.node.stroke }}>
                 <div className="flex flex-wrap items-start justify-between gap-3">

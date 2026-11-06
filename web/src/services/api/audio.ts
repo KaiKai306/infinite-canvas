@@ -286,7 +286,7 @@ async function audioTranslationInput(config: AiConfig, model: string, prompt: st
 
 export async function pollCanvasAudioTaskStatus(taskId: string, signal?: AbortSignal): Promise<CanvasAudioTask> {
     const token = useUserStore.getState().token;
-    if (!token) throw new Error("请先登录后再使用云端渠道");
+    if (!token) throw new Error("请先登录后再使用站点渠道");
     const response = await fetch(`/api/v1/canvas/audio-tasks/${encodeURIComponent(taskId)}`, {
         signal,
         headers: { Authorization: `Bearer ${token}` },

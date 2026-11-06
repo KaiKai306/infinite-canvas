@@ -147,7 +147,8 @@ type PublicStorageSetting struct {
 
 type PublicStorageConfig struct {
 	PublicStorageSetting
-	AutoSyncAllAssets bool `json:"autoSyncAllAssets"`
+	AutoSyncAllAssets  bool `json:"autoSyncAllAssets"`
+	ServerImageArchive bool `json:"serverImageArchive"`
 }
 
 type PublicAuthSetting struct {

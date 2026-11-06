@@ -10,6 +10,7 @@ import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { UserStatusActions } from "@/components/layout/user-status-actions";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { SITE_NAME } from "@/constant/site";
 
 export function AppTopNav() {
     const pathname = usePathname();
@@ -32,7 +33,7 @@ export function AppTopNav() {
                                         WebkitMask: "url(/logo.svg) center / contain no-repeat",
                                     }}
                                 />
-                                <span className="text-base font-medium">无限画布</span>
+                                <span className="text-base font-medium">{SITE_NAME}</span>
                             </Link>
 
                             <button
