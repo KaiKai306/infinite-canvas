@@ -138,7 +138,7 @@ async function prepareDirectRequest(config: AiConfig, provider: DirectAIProvider
 
 function requireDirectChannel(config: AiConfig) {
     const channel = localChannelForActiveModel(config);
-    if (!channel?.baseUrl.trim() || !channel.apiKey.trim()) throw new Error("本地渠道地址或 API Key 不能为空");
+    if (!channel?.baseUrl.trim() || !channel.apiKey.trim()) throw new Error("个人渠道地址或 API Key 不能为空");
     return channel;
 }
 

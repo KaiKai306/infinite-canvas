@@ -29,7 +29,7 @@ func DraftCreativeWorkflow(ctx context.Context, request WorkflowAgentDraftReques
 		return WorkflowAgentDraftResponse{}, err
 	}
 	if request.ChannelMode != "local" && !UserCanUseRemoteModelChannel(user) {
-		return WorkflowAgentDraftResponse{}, safeMessageError{message: "当前账号未开放云端渠道"}
+		return WorkflowAgentDraftResponse{}, safeMessageError{message: "当前账号未开放站点渠道"}
 	}
 	channel, err := workflowDraftChannel(request, modelName)
 	if err != nil {
@@ -202,7 +202,7 @@ func workflowDraftChannel(request WorkflowAgentDraftRequest, modelName string) (
 			Protocol: strings.TrimSpace(request.Protocol),
 		}
 		if channel.BaseURL == "" || channel.APIKey == "" {
-			return model.ModelChannel{}, safeMessageError{message: "文本模型本地直连渠道配置不完整"}
+			return model.ModelChannel{}, safeMessageError{message: "文本模型个人渠道配置不完整"}
 		}
 		return channel, nil
 	}
@@ -339,5 +339,3 @@ func maxInt(a, b int) int {
 	}
 	return b
 }
-
-

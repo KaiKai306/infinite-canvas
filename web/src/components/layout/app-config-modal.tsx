@@ -247,7 +247,7 @@ export function AppConfigModal() {
         const allChannels = normalizeLocalChannels(config);
         const channels = allChannels.filter((channel) => !isWorkflowProtocol(channel.protocol));
         if (channels.some((channel) => !channel.baseUrl.trim() || !channel.apiKey.trim())) {
-            message.error("请先填写所有本地渠道的 Base URL 和 API Key");
+            message.error("请先填写所有个人渠道的 Base URL 和 API Key");
             return;
         }
         setLoadingModels(true);

@@ -2420,13 +2420,15 @@ function updateResultByLogId(results: GenerationResult[], logId: string, next: P
 }
 
 function mergePendingLogResults(results: GenerationResult[], logs: GenerationLog[]) {
-    const updatedResults = results.map((result) => {
+    const pendingLogs = logs.filter((log) => log.status === "生成中" && log.task && !log.images.length);
+    const settledKeys = new Set(logs.filter((log) => log.status !== "生成中").flatMap(imageLogIdentityKeys));
+    const updatedResults = results.filter((result) => result.status !== "pending" || !imageResultIdentityKeys(result).some((key) => settledKeys.has(key))).map((result) => {
         const resultKeys = new Set(imageResultIdentityKeys(result));
-        const log = logs.find((item) => imageLogIdentityKeys(item).some((key) => resultKeys.has(key)));
+        const log = pendingLogs.find((item) => imageLogIdentityKeys(item).some((key) => resultKeys.has(key)));
         return log ? { ...result, id: log.id, taskLogId: log.id, task: log.task, progress: log.task?.progress ?? result.progress, durationMs: log.durationMs || result.durationMs, lastPolledAt: log.lastPolledAt || result.lastPolledAt } : result;
     });
     const existingIds = new Set(updatedResults.flatMap(imageResultIdentityKeys));
-    const pendingResults = logs.filter((log) => !imageLogIdentityKeys(log).some((key) => existingIds.has(key))).map((log) => createResultFromImageLog(log, "pending"));
+    const pendingResults = pendingLogs.filter((log) => !imageLogIdentityKeys(log).some((key) => existingIds.has(key))).map((log) => createResultFromImageLog(log, "pending"));
     return dedupeGenerationResults([...pendingResults, ...updatedResults]).sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -2946,6 +2948,7 @@ function buildGenerationLogConfig(config: AiConfig): GenerationLogConfig {
 
 function imageExtension(value: string) {
     const lower = value.toLowerCase();
+    if (lower.includes("gif")) return "gif";
     if (lower.includes("jpeg") || lower.includes("jpg")) return "jpg";
     if (lower.includes("webp")) return "webp";
     return "png";

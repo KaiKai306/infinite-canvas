@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Kai's 无限画布</title>
+  <rect width="64" height="64" rx="16" fill="#142536"/>
+  <g transform="translate(5 5) scale(.84375) rotate(-30 32 32)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m32 32-8.5-9.5C18 16.5 8 20.5 8 28.5v7c0 8 10 12 15.5 6l17-19C46 16.5 56 20.5 56 28.5v7c0 8-10 12-15.5 6L32 32Z" stroke="#DDFBF3"/>
+    <path d="m24 41 16-18" stroke="#142536" stroke-width="11"/>
+    <path d="m24 41 16-18" stroke="#43D7B0"/>
+  </g>
+</svg>

@@ -27,7 +27,7 @@ func selectAIRequestChannel(user model.AuthUser, modelName string, channelID str
 		return channel, userChannelID, err
 	}
 	if !service.UserCanUseRemoteModelChannel(user) {
-		return model.ModelChannel{}, "", fmt.Errorf("当前账号未开放云端渠道")
+		return model.ModelChannel{}, "", fmt.Errorf("当前账号未开放站点渠道")
 	}
 	channel, err := service.SelectModelChannelForModel(modelName, channelID, publicOnly)
 	return channel, "", err
@@ -36,7 +36,7 @@ func selectAIRequestChannel(user model.AuthUser, modelName string, channelID str
 func failAIChannelSelect(w http.ResponseWriter, err error, fallback string) {
 	message := strings.TrimSpace(err.Error())
 	switch message {
-	case "当前账号未开放云端渠道", "请先登录", "缺少模型名称", "缺少模型渠道", "本地渠道不存在", "本地渠道配置不完整", "本地渠道不支持该模型", "指定模型渠道不可用", "模型未开放":
+	case "当前账号未开放站点渠道", "请先登录", "缺少模型名称", "缺少模型渠道", "个人渠道不存在", "个人渠道配置不完整", "个人渠道不支持该模型", "指定模型渠道不可用", "模型未开放":
 		Fail(w, message)
 	default:
 		Fail(w, fallback)

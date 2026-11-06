@@ -62,7 +62,7 @@ func AdminAICallLogs(w http.ResponseWriter, r *http.Request) {
 	OK(w, list)
 }
 
-// ClientAICallLog 接收前端本地直连渠道的 AI 调用日志上报。
+// ClientAICallLog 接收前端个人渠道的 AI 调用日志上报。
 func ClientAICallLog(w http.ResponseWriter, r *http.Request) {
 	user, ok := service.UserFromContext(r.Context())
 	if !ok || user.ID == "" {

@@ -221,7 +221,7 @@ async function pollLocalTranslatedVideo(config: AiConfig, task: VideoResponse, s
     if (isCompletedVideoStatus(task.status) || isFailedVideoStatus(task.status)) return task;
     const snapshot = task.translationSnapshot!;
     const channel = config.localChannels.find((item) => item.id === snapshot.match.channelId);
-    if (!channel) throw new VideoRequestError("视频任务对应的本地渠道已不存在");
+    if (!channel) throw new VideoRequestError("视频任务对应的个人渠道已不存在");
     const currentConfig = { ...config, model: task.model || String(snapshot.input.variables.model), activeChannelId: snapshot.match.channelId, localChannels: [{ ...channel, baseUrl: snapshot.baseUrl, protocol: snapshot.protocol }] } satisfies AiConfig;
     const translation = await BrowserParameterTranslation.create(currentConfig, snapshot.match, snapshot.input);
     const completed = { ...snapshot.completed };

@@ -74,7 +74,7 @@ func SelectUserLocalModelChannelForModel(userID string, modelName string, channe
 		return model.ModelChannel{}, err
 	}
 	if !ok || strings.TrimSpace(config.ModelConfig) == "" {
-		return model.ModelChannel{}, errors.New("本地渠道不存在")
+		return model.ModelChannel{}, errors.New("个人渠道不存在")
 	}
 	var modelConfig userModelConfigInput
 	if err := json.Unmarshal([]byte(config.ModelConfig), &modelConfig); err != nil {
@@ -87,11 +87,11 @@ func SelectUserLocalModelChannelForModel(userID string, modelName string, channe
 		baseURL := strings.TrimSpace(channel.BaseURL)
 		apiKey := strings.TrimSpace(channel.APIKey)
 		if baseURL == "" || apiKey == "" {
-			return model.ModelChannel{}, errors.New("本地渠道配置不完整")
+			return model.ModelChannel{}, errors.New("个人渠道配置不完整")
 		}
 		models := userLocalChannelModels(channel.Models)
 		if len(models) > 0 && !userLocalChannelHasModel(models, modelName) {
-			return model.ModelChannel{}, errors.New("本地渠道不支持该模型")
+			return model.ModelChannel{}, errors.New("个人渠道不支持该模型")
 		}
 		protocol := strings.ToLower(strings.TrimSpace(channel.Protocol))
 		if protocol == "" {
@@ -117,7 +117,7 @@ func SelectUserLocalModelChannelForModel(userID string, modelName string, channe
 			ParameterTranslation: parameterTranslation,
 		}, nil
 	}
-	return model.ModelChannel{}, errors.New("本地渠道不存在")
+	return model.ModelChannel{}, errors.New("个人渠道不存在")
 }
 
 func userLocalChannelModels(models []string) []string {
