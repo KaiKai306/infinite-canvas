@@ -249,13 +249,13 @@ S3/R2 与 WebDAV 共用的媒体文件索引表，不保存画布、素材列表
 
 ### canvas_image_tasks
 
-画布图片生成任务表。只用于画布节点生成恢复，不影响生图工作台原接口。
+图片生成任务表，用于画布、生图工作台及工作流的任务恢复。
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `id` | string | 主键，本地任务 ID |
 | `user_id` | string | 用户 ID |
-| `source` | string | 固定为 `canvas` |
+| `source` | string | `canvas`、`image-workbench` 或 `workflow` |
 | `source_id` | string | 画布来源 ID |
 | `node_id` | string | 画布节点 ID |
 | `model` | string | 模型名称 |
@@ -267,6 +267,7 @@ S3/R2 与 WebDAV 共用的媒体文件索引表，不保存画布、素材列表
 | `generation_type` | string | `generation` 或 `edit` |
 | `image_url` | text | 完成后图片 URL或第一张图片 URL |
 | `image_urls` | JSON | 完成后全部图片 URL，第一项与 `image_url` 一致 |
+| `image_storage` | nullable JSON/text | 每张归档图片的 URL、storageKey、mimeType、bytes、width、height，支持多图断点归档 |
 | `storage_key` | string | 存储对象 key |
 | `error` | text | 失败摘要 |
 | `error_detail` | text | 失败详情 |
@@ -276,6 +277,8 @@ S3/R2 与 WebDAV 共用的媒体文件索引表，不保存画布、素材列表
 | `completed_at` | string | 完成时间 |
 
 索引：`idx_canvas_image_tasks_user_source_node (user_id, source, source_id, node_id)`
+
+HappyKai 启用 `SERVER_IMAGE_ARCHIVE` 后，生成结果先保留于任务记录，R2 全部归档成功才标为 `completed`，并以文件引用替换原始 Data URL。存储故障期间原始结果暂留 SQLite，后台重试存储，不重新请求模型。已归档任务保留少量元数据以支持关闭网页后找回，文件删除沿用原有对象生命周期。
 
 ### canvas_audio_tasks
 

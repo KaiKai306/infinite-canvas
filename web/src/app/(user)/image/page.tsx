@@ -2571,7 +2571,7 @@ function imageLogTaskId(log: GenerationLog) {
 }
 
 function isRecoverableImageTask(task: CanvasImageTask) {
-    return !isCompletedImageTask(task) && !isFailedImageTask(task);
+    return !isFailedImageTask(task);
 }
 
 function isCompletedImageTask(task: CanvasImageTask) {

@@ -24,7 +24,7 @@ func UpdateCanvasImageTask(task model.CanvasImageTask) (model.CanvasImageTask, e
 		Where("user_id = ? AND id = ? AND status <> ?", task.UserID, task.ID, "cancelled").
 		Select(
 			"Status", "Progress", "ResponseBody", "Error", "ErrorDetail",
-			"ImageURL", "ImageURLs", "StorageKey", "Width", "Height",
+			"ImageURL", "ImageURLs", "ImageStorage", "StorageKey", "Width", "Height",
 			"MimeType", "Bytes", "UpdatedAt", "StartedAt", "CompletedAt",
 		).
 		Updates(&task).Error
@@ -57,7 +57,7 @@ func ListUserCanvasImageTasks(userID string, sources []string, limit int) ([]mod
 		query = query.Where("source IN ?", sources)
 	}
 	err = query.
-		Where("status IN ?", []string{"queued", "processing", "running", "in_progress"}).
+		Where("(status IN ? OR (status = ? AND storage_key <> ''))", []string{"queued", "processing", "running", "in_progress"}, "completed").
 		Order("created_at DESC").
 		Limit(limit).
 		Find(&tasks).Error
@@ -106,7 +106,30 @@ func DeleteFinishedCanvasImageTasksBefore(before string) error {
 	}
 	return db.Where("completed_at <> ? AND completed_at < ?", "", before).
 		Where("status IN ?", []string{"completed", "failed", "cancelled"}).
+		Where("storage_key = '' OR storage_key IS NULL").
 		Delete(&model.CanvasImageTask{}).Error
+}
+
+// PendingCanvasImageArchives also finds generated results left by an interrupted process.
+func PendingCanvasImageArchives(before string) ([]model.CanvasImageTask, error) {
+	db, err := DB()
+	if err != nil {
+		return nil, err
+	}
+	var tasks []model.CanvasImageTask
+	err = db.Where("status IN ? AND image_url <> '' AND (storage_key = '' OR storage_key IS NULL) AND updated_at <= ?", []string{"processing", "completed"}, before).
+		Order("updated_at ASC").Limit(10).Find(&tasks).Error
+	return tasks, err
+}
+
+func SaveCanvasImageArchive(task model.CanvasImageTask) (bool, error) {
+	db, err := DB()
+	if err != nil {
+		return false, err
+	}
+	tx := db.Model(&model.CanvasImageTask{}).Where("user_id = ? AND id = ? AND status IN ?", task.UserID, task.ID, []string{"processing", "completed"}).
+		Select("Status", "Progress", "ImageURL", "ImageURLs", "ImageStorage", "StorageKey", "Width", "Height", "MimeType", "Bytes", "ResponseBody", "Error", "ErrorDetail", "UpdatedAt", "CompletedAt").Updates(&task)
+	return tx.RowsAffected > 0, tx.Error
 }
 
 func uniqueTrimmedValues(values ...string) []string {

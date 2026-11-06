@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tigerowo/infinite-canvas/config"
 	"github.com/tigerowo/infinite-canvas/model"
 	"github.com/tigerowo/infinite-canvas/service"
 )
@@ -295,6 +296,9 @@ func runCanvasImageTask(task model.CanvasImageTask, user model.AuthUser, body []
 	task.Status = "completed"
 	task.Progress = 100
 	task.CompletedAt = taskTime()
+	if config.Cfg.ServerImageArchive {
+		task.Status, task.Progress, task.CompletedAt = "processing", 95, ""
+	}
 	task.ImageURL = imageURLs[0]
 	if len(imageURLs) > 1 {
 		task.ImageURLs = imageURLs
@@ -306,7 +310,15 @@ func runCanvasImageTask(task model.CanvasImageTask, user model.AuthUser, body []
 	task.Height = 0
 	task.Error = ""
 	task.ErrorDetail = ""
-	_, _ = service.SaveCanvasImageTask(task)
+	if _, err := service.SaveCanvasImageTask(task); err != nil {
+		log.Printf("save generated image result failed task=%s", task.ID)
+		return
+	}
+	if config.Cfg.ServerImageArchive {
+		if err := service.ArchiveCanvasImageTask(ctx, task.UserID, task.ID); err != nil {
+			log.Printf("image archive pending task=%s err=%v", task.ID, err)
+		}
+	}
 }
 
 func runCanvasAudioTask(task model.CanvasAudioTask, user model.AuthUser, body []byte, contentType string, channelID string, userChannelID string) {

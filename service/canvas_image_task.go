@@ -124,7 +124,7 @@ func CanvasImageTaskResponse(task model.CanvasImageTask) map[string]any {
 		"createdAt":      task.CreatedAt,
 		"updatedAt":      task.UpdatedAt,
 	}
-	if task.ImageURL != "" {
+	if task.ImageURL != "" && task.Status == "completed" {
 		result["url"] = task.ImageURL
 		result["image_url"] = task.ImageURL
 		if len(task.ImageURLs) > 0 {
@@ -135,6 +135,9 @@ func CanvasImageTaskResponse(task model.CanvasImageTask) map[string]any {
 		result["height"] = task.Height
 		result["mimeType"] = task.MimeType
 		result["bytes"] = task.Bytes
+		if len(task.ImageStorage) > 0 {
+			result["imageStorage"] = task.ImageStorage
+		}
 	}
 	if task.WorkflowRef != "" {
 		result["workflowRef"] = task.WorkflowRef

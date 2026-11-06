@@ -125,7 +125,7 @@ func ReplacePromptCategory(category model.PromptCategory, items []model.Prompt) 
 			items[i].Category = category.Category
 			items[i].GithubURL = ""
 		}
-		return tx.Create(&items).Error
+		return tx.CreateInBatches(&items, 50).Error
 	})
 }
 

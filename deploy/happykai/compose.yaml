@@ -11,6 +11,7 @@ services:
       STORAGE_DRIVER: sqlite
       APP_URL: ${APP_URL:?Configure application origin}
       AUTH_COOKIE_SECURE: "true"
+      SERVER_IMAGE_ARCHIVE: "true"
       NEW_API_BASE_URL: ${NEW_API_BASE_URL:?Configure New API HTTP URL}
       NEW_API_PUBLIC_URL: ${NEW_API_PUBLIC_URL:?Configure New API login URL}
       GOMAXPROCS: "3"

@@ -26,6 +26,7 @@ type Config struct {
 	NewAPIBaseURL       string `env:"NEW_API_BASE_URL"`
 	NewAPIPublicURL     string `env:"NEW_API_PUBLIC_URL"`
 	AuthCookieSecure    bool   `env:"AUTH_COOKIE_SECURE" envDefault:"true"`
+	ServerImageArchive  bool   `env:"SERVER_IMAGE_ARCHIVE" envDefault:"false"`
 }
 
 var Cfg Config

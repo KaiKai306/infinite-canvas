@@ -1004,6 +1004,7 @@ async function syncGeneratedImages(images: GeneratedImage[]) {
 
 async function syncCanvasImageTask(task: CanvasImageTask, resultId = task.started_at): Promise<CanvasImageTask> {
     if (!["completed", "complete", "done", "succeeded", "success"].includes((task.status || "").toLowerCase())) return task;
+    if (task.imageStorage?.length && task.imageStorage.every((image) => image?.storageKey?.startsWith("server:"))) return task;
     const urls = [...new Set([...(task.image_urls || []), task.image_url || task.url || ""].map((url) => url.trim()).filter(Boolean))];
     const imageStorage = await Promise.all(urls.map((url, index) => autoSyncImage(url, `${task.id}:${resultId}:${index}`, index === 0 ? task.storageKey : undefined)));
     if (!imageStorage.some(Boolean)) return task;
