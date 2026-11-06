@@ -17,6 +17,11 @@ export const navigationTools = [
         icon: Video,
     },
     {
+        slug: "works",
+        label: "我的作品",
+        icon: Images,
+    },
+    {
         slug: "music",
         label: "音乐创作台",
         icon: Music2,

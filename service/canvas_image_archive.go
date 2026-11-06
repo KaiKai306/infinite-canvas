@@ -137,7 +137,13 @@ func ArchiveCanvasImageTask(ctx context.Context, userID, id string) error {
 	task.MimeType, task.Bytes, task.Width, task.Height = first.MimeType, first.Bytes, first.Width, first.Height
 	task.Status, task.Progress, task.CompletedAt = "completed", 100, now()
 	task.ResponseBody, task.Error, task.ErrorDetail = "", "", ""
-	return saveImageArchive(task)
+	if err := saveImageArchive(task); err != nil {
+		return err
+	}
+	if err := IndexArchivedImageTask(task); err != nil {
+		log.Printf("image work indexing pending task=%s", task.ID)
+	}
+	return nil
 }
 
 func saveImageArchive(task model.CanvasImageTask) error {

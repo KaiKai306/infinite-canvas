@@ -2,6 +2,8 @@
 
 ## Unreleased
 
++ [新增] HappyKai 登录用户专用生图接口、云端作品库及私有图片缩略图
+
 + [修复] 修复 Gemini 误将思考图作为正式结果
 + [修复] 修复 Grok2API 视频参考图 URL 强制被转换为 Base64
 

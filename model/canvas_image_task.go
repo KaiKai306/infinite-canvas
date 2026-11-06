@@ -27,6 +27,7 @@ type CanvasImageTask struct {
 	ImageURLs       []string           `json:"imageUrls" gorm:"serializer:json"`
 	ImageStorage    []*CanvasTaskImage `json:"imageStorage,omitempty" gorm:"serializer:json"`
 	StorageKey      string             `json:"storageKey" gorm:"size:1024"`
+	WorksIndexedAt  string             `json:"-" gorm:"size:64"`
 	Width           int                `json:"width"`
 	Height          int                `json:"height"`
 	MimeType        string             `json:"mimeType" gorm:"size:191"`

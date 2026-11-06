@@ -2,6 +2,8 @@
 
 基于 `tigerowo/infinite-canvas`，保留上游界面、生成逻辑及 Canvas Agent。使用 SQLite、私有 R2，不自动创建或读取 New API 模型令牌。
 
+登录后的 [个人生图接口与作品库](IMAGE-API.md) 复用现有图片任务和R2：专用受限凭证、幂等提交/查询/下载、服务端作品索引与私有缩略图。`/works` 汇集已归档图片及云端视频，`/image-api` 管理本人的专用凭证；游客只能看到登录引导。前端版Agent暂不移植。
+
 ## 账号
 
 - 设置 `NEW_API_BASE_URL` 后，普通登录通过服务端 HTTP 验证 New API 密码，完成后再次读取 `/api/user/self`。支持旧版 Cookie、新版 Bearer 登录及 TOTP。验证码挑战仅保存在内存，五分钟过期、一次尝试，失败需重新登录。暂不支持 Passkey、OAuth，或启用 Turnstile、强制密码加密后的流程。

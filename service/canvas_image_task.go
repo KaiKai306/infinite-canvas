@@ -151,6 +151,8 @@ func CanvasImageTaskResponse(task model.CanvasImageTask) map[string]any {
 
 func normalizeCanvasImageTaskSource(source string) string {
 	switch strings.ToLower(strings.TrimSpace(source)) {
+	case "api":
+		return "api"
 	case "image-workbench":
 		return "image-workbench"
 	case "workflow":

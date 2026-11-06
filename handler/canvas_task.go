@@ -287,7 +287,7 @@ func runCanvasImageTask(task model.CanvasImageTask, user model.AuthUser, body []
 		return
 	}
 	translationInput, _ := service.ReadParameterTranslationInput(body)
-	collectAll := translationInput != nil || allAIProtocolImageResults(task.Model)
+	collectAll := task.Source == "api" || translationInput != nil || allAIProtocolImageResults(task.Model)
 	imageURLs, mimeType, bytes, err := imageURLsFromAIResponse(payload, responseContentType, collectAll, task.Endpoint == "/chat/completions")
 	if err != nil {
 		saveFailedCanvasImageTask(task, err.Error(), responseDetail)

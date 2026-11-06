@@ -349,6 +349,12 @@ func DeleteStorageObject(ctx context.Context, id string, providerInput *StorageO
 	if user, ok := UserFromContext(ctx); ok && object.CreatedBy != "" && object.CreatedBy != user.ID {
 		return errors.New("无权删除该对象")
 	}
+	// Generated files belong to the account gallery as well as individual history/canvas entries.
+	if used, err := repository.StorageObjectUsedByWork(id); err != nil {
+		return err
+	} else if used {
+		return nil
+	}
 	settings, err := repository.GetSettings()
 	if err != nil {
 		return err

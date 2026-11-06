@@ -269,6 +269,7 @@ S3/R2 与 WebDAV 共用的媒体文件索引表，不保存画布、素材列表
 | `image_urls` | JSON | 完成后全部图片 URL，第一项与 `image_url` 一致 |
 | `image_storage` | nullable JSON/text | 每张归档图片的 URL、storageKey、mimeType、bytes、width、height，支持多图断点归档 |
 | `storage_key` | string | 存储对象 key |
+| `works_indexed_at` | nullable string | 服务端作品库索引完成时间；为空的归档任务由后台补索引 |
 | `error` | text | 失败摘要 |
 | `error_detail` | text | 失败详情 |
 | `created_at` | string | 创建时间 |
@@ -279,6 +280,18 @@ S3/R2 与 WebDAV 共用的媒体文件索引表，不保存画布、素材列表
 索引：`idx_canvas_image_tasks_user_source_node (user_id, source, source_id, node_id)`
 
 HappyKai 启用 `SERVER_IMAGE_ARCHIVE` 后，生成结果先保留于任务记录，R2 全部归档成功才标为 `completed`，并以文件引用替换原始 Data URL。存储故障期间原始结果暂留 SQLite，后台重试存储，不重新请求模型。已归档任务保留少量元数据以支持关闭网页后找回，文件删除沿用原有对象生命周期。
+
+### image_api_credentials
+
+专用生图凭证表。`id`主键，`user_id`归属索引，`token_hash`为唯一SHA-256索引，原始凭证不落库。保存`name`、脱敏`prefix`、绑定`channel_id`、默认`model`、`created_at`、`expires_at`、`last_used_at`、`revoked_at`。不复制用户模型Key，使用已有个人模型配置。
+
+### image_api_jobs
+
+生图API幂等意图表。`id`由用户ID与Idempotency-Key摘要确定，`user_id`与`created_at`组合索引用于本人任务列表和限速；`fingerprint`记录规范化输入和有序参考图摘要，`submission_error`保存安全的拒绝原因。`id`同时对应原生`canvas_image_tasks.id`，任务来源为`api`，不另造生成执行器。
+
+### media_works
+
+账号作品索引。`id`主键，`object_id`唯一引用原`storage_objects`，`thumbnail_id`引用私有静态封面文件；`user_id, deleted_at, created_at`组合索引用于分页。保存`kind`、`title`、`prompt`、`model`、`source`、`task_id`、原图尺寸/字节/MIME、`thumbnail_state`及重试检查时间。`deleted_at`为空可见，非空为作品库隐藏记录，不对原始文件执行级联删除；补索引不覆盖隐藏状态。图片原文件与封面均在R2，表中没有媒体字节。
 
 ### canvas_audio_tasks
 
