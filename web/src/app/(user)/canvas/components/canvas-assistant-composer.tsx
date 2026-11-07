@@ -108,6 +108,7 @@ export function CanvasAssistantComposer({
                             config={imageConfig}
                             placement="topLeft"
                             showCount={false}
+                            showOutput={false}
                             buttonIcon={<ImageIcon className="size-3.5" />}
                             buttonClassName="!h-8 !max-w-[116px] !justify-start !rounded-full !px-2.5"
                             onConfigChange={(key, value) => {

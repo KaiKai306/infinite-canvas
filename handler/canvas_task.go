@@ -530,7 +530,7 @@ func writeCanvasTaskMultipartFile(writer *multipart.Writer, field string, header
 			filename = "reference"
 		}
 		partHeader := make(textproto.MIMEHeader)
-		partHeader.Set("Content-Disposition", mime.FormatMediaType("form-data", map[string]string{"name": field, "filename": filename + extension}))
+		partHeader.Set("Content-Disposition", fmt.Sprintf("form-data; name=%q; filename=%q", field, filename+extension))
 		partHeader.Set("Content-Type", mimeType)
 		part, err = writer.CreatePart(partHeader)
 	}

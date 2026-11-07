@@ -9,6 +9,10 @@ import type { WorkflowChannelSettings } from "@/components/workflow/workflow-cha
 import { GrokTtsVoiceSelect } from "@/components/grok-tts-voice-select";
 import { MiniMaxTtsVoiceSelect } from "@/components/minimax-tts-voice-select";
 import { ModelPicker } from "@/components/model-picker";
+import { ImageSettingsPanel } from "@/components/image-settings-panel";
+import { supportsGifOutput } from "@/lib/image-output";
+import { canvasThemes } from "@/lib/canvas-theme";
+import { useThemeStore } from "@/stores/use-theme-store";
 import { fetchImageModels } from "@/services/api/image";
 import { fetchUserConfig, measureUserStorageProvider, syncUserModelConfig, syncUserStorageProvider } from "@/services/api/user-config";
 import { clearStorageConfigCache as clearFileStorageCache } from "@/services/file-storage";
@@ -65,6 +69,7 @@ export function AppConfigModal() {
     const [storageUsageText, setStorageUsageText] = useState("");
     const [webDAVStorageUsageText, setWebDAVStorageUsageText] = useState("");
     const config = useConfigStore((state) => state.config);
+    const imageSettingsTheme = canvasThemes[useThemeStore((state) => state.theme)];
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const isConfigOpen = useConfigStore((state) => state.isConfigOpen);
     const shouldPromptContinue = useConfigStore((state) => state.shouldPromptContinue);
@@ -593,6 +598,11 @@ export function AppConfigModal() {
                             </Radio>
                         </Radio.Group>
                     </Form.Item>
+                    {supportsGifOutput(modelConfig.imageModel) || config.imageOutputFormat === "gif" ? <section className="mb-4 space-y-2">
+                        <div className="text-sm font-medium">图片输出默认值</div>
+                        <ImageSettingsPanel config={{ ...config, model: modelConfig.imageModel }} onConfigChange={(key, value) => updateConfig(key, value)} theme={imageSettingsTheme} showTitle={false} showQuality={false} showSize={false} showCount={false} className="space-y-3" />
+                        <div className="text-xs text-stone-500">在这里选择默认格式和帧参数，点击“完成”保存到账号。工作台和节点仍可单次调整。</div>
+                    </section> : null}
                     <Collapse className="mb-4" size="small" items={[{ key: "advanced", label: "接口与生成高级选项", children: <div className="grid gap-3 md:grid-cols-2">
                         <FeatureSwitch title="流式传输" description="仅在渠道支持时开启；影响上游响应方式，不决定后台任务或云端保存。" checked={Boolean(config.streamImages)} onChange={(checked) => updateConfig("streamImages", checked ? "1" : "")} />
                         <FeatureSwitch title="返回 Base64 图片" description="请求上游返回 Base64；不决定本地或云端保存。常规使用可保持关闭。" checked={Boolean(config.responseFormatB64Json)} onChange={(checked) => updateConfig("responseFormatB64Json", checked ? "1" : "")} />

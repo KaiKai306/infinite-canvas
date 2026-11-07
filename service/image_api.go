@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,11 +43,14 @@ type ImageAPICredentialInput struct {
 }
 
 type ImageAPIJobInput struct {
-	Prompt  string `json:"prompt"`
-	Model   string `json:"model,omitempty"`
-	Size    string `json:"size,omitempty"`
-	Quality string `json:"quality,omitempty"`
-	Count   int    `json:"count,omitempty"`
+	Prompt          string `json:"prompt"`
+	Model           string `json:"model,omitempty"`
+	Size            string `json:"size,omitempty"`
+	Quality         string `json:"quality,omitempty"`
+	Count           int    `json:"count,omitempty"`
+	OutputFormat    string `json:"output_format,omitempty"`
+	FrameCount      int    `json:"frame_count,omitempty"`
+	FrameDurationMs int    `json:"frame_duration_ms,omitempty"`
 }
 
 type ImageAPIHTTPError struct {
@@ -58,6 +62,7 @@ func (e ImageAPIHTTPError) Error() string { return e.Message }
 
 var imageAPIUserLocks sync.Map
 var imageAPIKeyPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{8,128}$`)
+var imageGIFModelPattern = regexp.MustCompile(`(?i)^gpt-image-(\d+)(?:\.(\d+))?(?:-|$)`)
 
 func imageAPIHash(value []byte) string {
 	sum := sha256.Sum256(value)
@@ -236,6 +241,34 @@ func NormalizeImageAPIJobInput(input ImageAPIJobInput, credential model.ImageAPI
 	}
 	if input.Count < 1 || input.Count > 4 {
 		return input, ImageAPIHTTPError{400, "单次生成张数为1至4张"}
+	}
+	input.OutputFormat = strings.ToLower(strings.TrimSpace(input.OutputFormat))
+	if input.OutputFormat == "" || input.OutputFormat == "png" {
+		if input.FrameCount != 0 || input.FrameDurationMs != 0 {
+			return input, ImageAPIHTTPError{400, "帧数和时长仅用于 GIF 输出"}
+		}
+		input.OutputFormat = "" // Keep omitted and explicit PNG retries equivalent.
+	} else if input.OutputFormat == "gif" {
+		version := imageGIFModelPattern.FindStringSubmatch(input.Model)
+		major, minor := 0, 0
+		if len(version) > 2 {
+			major, _ = strconv.Atoi(version[1])
+			minor, _ = strconv.Atoi(version[2])
+		}
+		if major < 2 || major == 2 && minor < 6 {
+			return input, ImageAPIHTTPError{400, "GIF 输出需要 GPT Image 2.6 或更新的图片模型"}
+		}
+		if input.FrameCount == 0 {
+			input.FrameCount = 4
+		}
+		if input.FrameDurationMs == 0 {
+			input.FrameDurationMs = 200
+		}
+		if input.FrameCount < 2 || input.FrameCount > 16 || input.FrameDurationMs < 20 || input.FrameDurationMs > 2000 {
+			return input, ImageAPIHTTPError{400, "GIF 帧数为2至16帧，每帧20至2000毫秒"}
+		}
+	} else {
+		return input, ImageAPIHTTPError{400, "输出格式仅支持 PNG 或 GIF"}
 	}
 	return input, nil
 }

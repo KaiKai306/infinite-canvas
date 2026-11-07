@@ -19,6 +19,8 @@ func TestStripCanvasTaskMultipartFieldsNormalizesImages(t *testing.T) {
 	}{
 		{name: "jpeg", filename: "reference.png", data: []byte{0xff, 0xd8, 0xff, 0xdb, 0x00}, normalizeImages: true, wantFilename: "reference.jpg", wantContentType: "image/jpeg"},
 		{name: "png", filename: "reference.jpg", data: []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, normalizeImages: true, wantFilename: "reference.png", wantContentType: "image/png"},
+		{name: "quoted filename", filename: "reference\"shot.jpg", data: []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, normalizeImages: true, wantFilename: "reference\"shot.png", wantContentType: "image/png"},
+		{name: "unicode filename", filename: "参考图.jpg", data: []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, normalizeImages: true, wantFilename: "参考图.png", wantContentType: "image/png"},
 		{name: "webp", filename: "reference.jpeg", data: []byte("RIFF\x04\x00\x00\x00WEBPVP8 "), normalizeImages: true, wantFilename: "reference.webp", wantContentType: "image/webp"},
 		{name: "unknown", filename: "reference.bin", data: []byte("unknown"), normalizeImages: true, wantFilename: "reference.bin", wantContentType: "application/octet-stream"},
 		{name: "disabled", filename: "reference.bin", data: []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, wantFilename: "reference.bin", wantContentType: "application/octet-stream"},

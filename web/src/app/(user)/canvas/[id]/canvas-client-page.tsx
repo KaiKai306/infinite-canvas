@@ -2440,7 +2440,7 @@ function InfiniteCanvasPage({ projectId }: { projectId: string }) {
 
     const downloadNodeImage = useCallback((node: CanvasNodeData) => {
         if ((!isCanvasImageNodeType(node.type) && node.type !== CanvasNodeType.Video && node.type !== CanvasNodeType.Audio) || !node.metadata?.content) return;
-        saveAs(node.metadata.content, `canvas-${node.type}-${node.id}.${node.type === CanvasNodeType.Video ? "mp4" : node.type === CanvasNodeType.Audio ? audioExtension(node.metadata.mimeType) : imageExtension(node.metadata.content)}`);
+        saveAs(node.metadata.content, `canvas-${node.type}-${node.id}.${node.type === CanvasNodeType.Video ? "mp4" : node.type === CanvasNodeType.Audio ? audioExtension(node.metadata.mimeType) : imageExtension(node.metadata.mimeType || node.metadata.content)}`);
     }, []);
 
     const disconnectNodeReference = useCallback((fromNodeId: string, toNodeId: string) => {
@@ -4196,6 +4196,9 @@ function InfiniteCanvasPage({ projectId }: { projectId: string }) {
                         model: savedImageMetadata.model || effectiveConfig.imageModel || effectiveConfig.model,
                         imageChannelId: savedImageMetadata.channelId || effectiveConfig.imageChannelId,
                         activeChannelId: savedImageMetadata.channelId || effectiveConfig.imageChannelId,
+                        imageOutputFormat: savedImageMetadata.imageOutputFormat || "png",
+                        imageFrameCount: savedImageMetadata.imageFrameCount || effectiveConfig.imageFrameCount || "4",
+                        imageFrameDurationMs: savedImageMetadata.imageFrameDurationMs || effectiveConfig.imageFrameDurationMs || "200",
                         quality: savedImageMetadata.quality || effectiveConfig.quality,
                         size: isPanorama ? PANORAMA_IMAGE_SIZE : savedImageMetadata.size || effectiveConfig.size,
                         count: "1",
@@ -5515,6 +5518,9 @@ function buildImageGenerationMetadata(type: CanvasImageGenerationType, config: A
         model: config.model,
         channelId: config.imageChannelId || config.activeChannelId,
         size: config.size,
+        imageOutputFormat: config.imageOutputFormat,
+        imageFrameCount: config.imageFrameCount,
+        imageFrameDurationMs: config.imageFrameDurationMs,
         quality: config.quality,
         count,
         references: references.map(referenceUrl).filter((url): url is string => Boolean(url)),
@@ -6145,6 +6151,9 @@ function buildGenerationConfig(config: AiConfig, node: CanvasNodeData | undefine
         videoChannelId,
         textChannelId,
         audioChannelId,
+        imageOutputFormat: node?.metadata?.imageOutputFormat || config.imageOutputFormat || "png",
+        imageFrameCount: node?.metadata?.imageFrameCount || config.imageFrameCount || "4",
+        imageFrameDurationMs: node?.metadata?.imageFrameDurationMs || config.imageFrameDurationMs || "200",
         quality: node?.metadata?.quality || config.quality || defaultConfig.quality,
         size: isPanoramaNodeType(node?.type) ? PANORAMA_IMAGE_SIZE : node?.metadata?.size || (mode === "video" ? config.videoSize || defaultConfig.videoSize : config.size || defaultConfig.size),
         videoSeconds: node?.metadata?.seconds || config.videoSeconds || defaultConfig.videoSeconds,

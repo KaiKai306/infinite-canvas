@@ -38,6 +38,7 @@ export default function ImageAPIPage() {
 先 GET /capabilities 了解输入限制。
 POST /jobs，必须带 Idempotency-Key（每次意图一个 UUID，网络重试复用原值）。
 JSON 示例：{"prompt":"一只在窗边看雪的橘猫，水彩风格","size":"1024x1024","count":1}
+GIF 示例：{"model":"gpt-image-2.6-flare","prompt":"循环飘落的雪花","output_format":"gif","frame_count":4,"frame_duration_ms":200}。使用本人渠道支持的2.6图片模型，2至16帧、每帧20至2000毫秒；服务端不发送流式参数。
 参考图编辑使用 multipart/form-data：同名文本字段，加最多4个 image 文件（PNG/JPEG/WebP，每张不超过10MiB）。
 GET /jobs/{id} 查询，每3秒一次，直到 completed 或 failed。
 completed 后使用相同凭证下载 images[].downloadUrl 指定的相对路径。

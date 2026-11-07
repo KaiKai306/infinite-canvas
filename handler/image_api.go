@@ -67,7 +67,7 @@ func RevokeImageAPICredential(w http.ResponseWriter, r *http.Request, id string)
 
 func ImageAPICapabilities(w http.ResponseWriter, r *http.Request) {
 	credential, _ := service.ImageAPICredentialFromContext(r.Context())
-	OK(w, map[string]any{"version": "v1", "model": credential.Model, "channelId": credential.ChannelID, "maxCount": 4, "maxReferences": 4, "maxReferenceBytes": 10 << 20, "referenceTypes": []string{"image/png", "image/jpeg", "image/webp"}, "submission": "POST /api/image/v1/jobs", "poll": "GET /api/image/v1/jobs/{id}", "download": "GET /api/image/v1/jobs/{id}/images/{index}", "authorization": "Authorization: Bearer <dedicated-image-key>", "idempotency": "Required Idempotency-Key: 8-128 letters, digits, _ or -. Retry the same key and identical input; conflicting input returns 409.", "jsonFields": []string{"prompt", "model", "size", "quality", "count"}, "references": "multipart/form-data: the same text fields and up to four repeated image file fields; no remote reference URLs", "storage": "Results are archived to the account's private cloud storage and appear in /works; no browser or canvas required.", "rateLimit": "10 new jobs per user per minute, 3 active API jobs", "retry": "Poll every 3 seconds. A new intent uses a new key. Never automatically replay submission_unknown or a failed job under a new key.", "errors": "Nonzero code means failure; inspect HTTP status and msg. No new model call is made for an existing idempotency key."})
+	OK(w, map[string]any{"version": "v1", "model": credential.Model, "channelId": credential.ChannelID, "maxCount": 4, "outputFormats": []string{"png", "gif"}, "gif": map[string]any{"models": "GPT Image 2.6+", "minFrames": 2, "maxFrames": 16, "minFrameDurationMs": 20, "maxFrameDurationMs": 2000, "streaming": false}, "maxReferences": 4, "maxReferenceBytes": 10 << 20, "referenceTypes": []string{"image/png", "image/jpeg", "image/webp"}, "submission": "POST /api/image/v1/jobs", "poll": "GET /api/image/v1/jobs/{id}", "download": "GET /api/image/v1/jobs/{id}/images/{index}", "authorization": "Authorization: Bearer <dedicated-image-key>", "idempotency": "Required Idempotency-Key: 8-128 letters, digits, _ or -. Retry the same key and identical input; conflicting input returns 409.", "jsonFields": []string{"prompt", "model", "size", "quality", "count", "output_format", "frame_count", "frame_duration_ms"}, "references": "multipart/form-data: the same text fields and up to four repeated image file fields; no remote reference URLs", "storage": "Results are archived to the account's private cloud storage and appear in /works; no browser or canvas required.", "rateLimit": "10 new jobs per user per minute, 3 active API jobs", "retry": "Poll every 3 seconds. A new intent uses a new key. Never automatically replay submission_unknown or a failed job under a new key.", "errors": "Nonzero code means failure; inspect HTTP status and msg. No new model call is made for an existing idempotency key."})
 }
 
 func ImageAPIJobs(w http.ResponseWriter, r *http.Request) {
@@ -117,9 +117,15 @@ func ImageAPIJobs(w http.ResponseWriter, r *http.Request) {
 		OK(w, service.ImageAPIJobResponse(job))
 		return
 	}
-	if _, err = service.SelectUserLocalModelChannelForModel(user.ID, input.Model, credential.ChannelID); err != nil {
+	channel, err := service.SelectUserLocalModelChannelForModel(user.ID, input.Model, credential.ChannelID)
+	if err != nil {
 		_ = repository.FailImageAPIJob(user.ID, job.ID, "个人渠道或模型不可用，请检查账号配置")
 		FailWithStatus(w, 400, "个人渠道或模型不可用，请检查账号配置")
+		return
+	}
+	if input.OutputFormat == "gif" && strings.TrimSpace(channel.ParameterTranslation) != "" {
+		_ = repository.FailImageAPIJob(user.ID, job.ID, "GIF 暂不支持参数转换模型")
+		FailWithStatus(w, 400, "GIF 请使用原生 OpenAI Images 渠道，暂不支持参数转换模型")
 		return
 	}
 	body, contentType, err := nativeImageAPIRequest(job, credential, input, images, types)
@@ -254,6 +260,18 @@ func readImageAPIInput(r *http.Request) (service.ImageAPIJobInput, [][]byte, []s
 				return input, nil, nil, errors.New("count 必须为整数")
 			}
 			input.Count = value
+		case "output_format":
+			input.OutputFormat = values[0]
+		case "frame_count", "frame_duration_ms":
+			value, err := strconv.Atoi(values[0])
+			if err != nil {
+				return input, nil, nil, errors.New("帧数和每帧时长必须为整数")
+			}
+			if field == "frame_count" {
+				input.FrameCount = value
+			} else {
+				input.FrameDurationMs = value
+			}
 		default:
 			return input, nil, nil, errors.New("存在未知生图参数")
 		}
@@ -292,6 +310,9 @@ func readImageAPIInput(r *http.Request) (service.ImageAPIJobInput, [][]byte, []s
 
 func nativeImageAPIRequest(job model.ImageAPIJob, credential model.ImageAPICredential, input service.ImageAPIJobInput, images [][]byte, types []string) ([]byte, string, error) {
 	request := map[string]any{"model": input.Model, "prompt": input.Prompt, "n": input.Count}
+	if input.OutputFormat == "gif" {
+		request["output_format"], request["frame_count"], request["frame_duration_ms"] = "gif", input.FrameCount, input.FrameDurationMs
+	}
 	if input.Size != "auto" {
 		request["size"] = input.Size
 	}

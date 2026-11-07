@@ -22,10 +22,11 @@ type CanvasImageSettingsPopoverProps = {
     autoAdjustOverflow?: boolean;
     showSize?: boolean;
     showCount?: boolean;
+    showOutput?: boolean;
     buttonIcon?: ReactNode;
 };
 
-export function CanvasImageSettingsPopover({ config, onConfigChange, onOpenChange, buttonClassName, placement = "topLeft", showSize = true, showCount = true, buttonIcon }: CanvasImageSettingsPopoverProps) {
+export function CanvasImageSettingsPopover({ config, onConfigChange, onOpenChange, buttonClassName, placement = "topLeft", showSize = true, showCount = true, showOutput = true, buttonIcon }: CanvasImageSettingsPopoverProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const buttonRef = useRef<HTMLSpanElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -65,7 +66,7 @@ export function CanvasImageSettingsPopover({ config, onConfigChange, onOpenChang
         };
     }, [onOpenChange, open]);
 
-    const panel = open && buttonRect ? <ImageSettingsPortal buttonRect={buttonRect} panelRef={panelRef} placement={placement} theme={theme} config={config} onConfigChange={onConfigChange} showSize={effectiveShowSize} showCount={effectiveShowCount} /> : null;
+    const panel = open && buttonRect ? <ImageSettingsPortal buttonRect={buttonRect} panelRef={panelRef} placement={placement} theme={theme} config={config} onConfigChange={onConfigChange} showSize={effectiveShowSize} showCount={effectiveShowCount} showOutput={showOutput} /> : null;
 
     return (
         <>
@@ -100,6 +101,7 @@ function ImageSettingsPortal({
     onConfigChange,
     showSize,
     showCount,
+    showOutput,
 }: {
     buttonRect: DOMRect;
     panelRef: RefObject<HTMLDivElement | null>;
@@ -109,6 +111,7 @@ function ImageSettingsPortal({
     onConfigChange: (key: keyof AiConfig, value: string) => void;
     showSize: boolean;
     showCount: boolean;
+    showOutput: boolean;
 }) {
     const width = 356;
     const gap = 8;
@@ -140,7 +143,7 @@ function ImageSettingsPortal({
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
         >
-            <ImageSettingsPanel config={config} onConfigChange={(key, value) => onConfigChange(key, value)} theme={theme} className="space-y-4" showSize={showSize} showCount={showCount} />
+            <ImageSettingsPanel config={config} onConfigChange={(key, value) => onConfigChange(key, value)} theme={theme} className="space-y-4" showSize={showSize} showCount={showCount} showOutput={showOutput} />
         </div>,
         document.body,
     );

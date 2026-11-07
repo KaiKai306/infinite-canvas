@@ -124,7 +124,7 @@ type GenerationLog = {
     lastPolledAt?: number;
 };
 
-type GenerationLogConfig = Pick<AiConfig, "channelMode" | "model" | "imageModel" | "activeChannelId" | "imageChannelId" | "quality" | "size" | "count" | "apiMode" | "streamImages" | "streamPartialImages" | "responseFormatB64Json" | "codexCli">;
+type GenerationLogConfig = Pick<AiConfig, "channelMode" | "model" | "imageModel" | "activeChannelId" | "imageChannelId" | "quality" | "size" | "count" | "apiMode" | "streamImages" | "streamPartialImages" | "responseFormatB64Json" | "codexCli" | "imageOutputFormat" | "imageFrameCount" | "imageFrameDurationMs">;
 type RequestSnapshot = { text: string; requestConfig: AiConfig; displayConfig: GenerationLogConfig; references: ReferenceImage[]; workflowRef?: WorkflowRef };
 type GenerationCategory = { id: string; name: string; createdAt: number };
 type ResultViewMode = "all" | "category";
@@ -2017,7 +2017,7 @@ function GenerationSettings({ config, model, updateConfig, openConfigDialog }: {
                     </div>
                 </div>
             </section>
-            <ImageSettingsPanel config={config} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="space-y-3" maxCount={10} />
+            <ImageSettingsPanel config={{ ...config, model }} onConfigChange={(key, value) => updateConfig(key, value)} theme={theme} showTitle={false} className="space-y-3" maxCount={10} />
         </div>
     );
 }
@@ -2902,6 +2902,9 @@ function normalizeLogConfig(log: Partial<GenerationLog>): GenerationLogConfig {
         imageModel: log.config?.imageModel || log.model || "",
         activeChannelId: taskChannelId || log.config?.activeChannelId || log.config?.imageChannelId || "",
         imageChannelId: taskChannelId || log.config?.imageChannelId || log.config?.activeChannelId || "",
+        imageOutputFormat: log.config?.imageOutputFormat || "png",
+        imageFrameCount: log.config?.imageFrameCount || "4",
+        imageFrameDurationMs: log.config?.imageFrameDurationMs || "200",
         quality: log.config?.quality || log.quality || "",
         size: log.config?.size || log.size || "",
         count: log.config?.count || String(log.imageCount || log.successCount || 1),
@@ -2935,6 +2938,9 @@ function buildGenerationLogConfig(config: AiConfig): GenerationLogConfig {
         imageModel: config.imageModel,
         activeChannelId: config.imageChannelId || config.activeChannelId,
         imageChannelId: config.imageChannelId,
+        imageOutputFormat: config.imageOutputFormat,
+        imageFrameCount: config.imageFrameCount,
+        imageFrameDurationMs: config.imageFrameDurationMs,
         quality: config.quality,
         size: config.size,
         count: config.count,

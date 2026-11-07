@@ -80,6 +80,9 @@ export type AiConfig = {
     textModels: string[];
     audioModels: string[];
     quality: string;
+    imageOutputFormat?: string;
+    imageFrameCount?: string;
+    imageFrameDurationMs?: string;
     size: string;
     videoSize: string;
     count: string;
@@ -158,6 +161,9 @@ export const defaultConfig: AiConfig = {
     textModels: [],
     audioModels: [],
     quality: "auto",
+    imageOutputFormat: "png",
+    imageFrameCount: "4",
+    imageFrameDurationMs: "200",
     size: "1:1",
     videoSize: "1280x720",
     count: "1",

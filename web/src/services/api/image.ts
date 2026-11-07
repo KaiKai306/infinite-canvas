@@ -1,4 +1,5 @@
 import axios from "axios";
+import { imageOutputParameters, prepareImageOutputConfig, type ImageOutputParameters } from "@/lib/image-output";
 import { executeParameterTranslation, findParameterTranslation, normalizeTranslationAspectRatio, translationBody, translationHeaders, type TranslationInput } from "./channel-parameter-translation";
 
 import { isMiniMaxChannel, miniMaxModels } from "@/lib/minimax-video";
@@ -92,6 +93,7 @@ export class ImageRequestError extends Error {
 }
 
 type ImageRequestParams = {
+    output: ImageOutputParameters;
     n: number;
     quality: string;
     size?: string;
@@ -169,6 +171,7 @@ function createImageRequestParams(config: AiConfig): ImageRequestParams {
     const zhipu = isZhipuImageModel(config.model);
     const quality = zhipu ? normalizeZhipuImageQuality(config.model, normalizedQuality) : normalizedQuality;
     return {
+        output: imageOutputParameters(config),
         n: normalizeBoundedInteger(config.count, 1, 1, 15),
         quality,
         size: resolveRequestSize(quality, config.size),
@@ -230,6 +233,7 @@ function applyImageGenerationParams(body: Record<string, unknown>, config: AiCon
 }
 
 function applyImageGenerationOptions(body: Record<string, unknown>, config: AiConfig, params: ImageRequestParams) {
+    Object.assign(body, params.output);
     if (isZhipuImageModel(config.model)) return;
     if (params.n > 1) body.n = params.n;
     if (config.responseFormatB64Json) body.response_format = "b64_json";
@@ -647,7 +651,7 @@ function withSystemMessage(config: AiConfig, messages: ChatCompletionMessage[]) 
 }
 
 async function requestImageGenerationSingle(config: AiConfig & { seedIndex?: number; seedCount?: number }, prompt: string, params: ImageRequestParams): Promise<GeneratedImage[]> {
-    const mime = IMAGE_MIME;
+    const mime = params.output.output_format === "gif" ? "image/gif" : IMAGE_MIME;
 
     if (isGeminiConfig(config)) return requestGeminiImageSingle(config, prompt, [], params);
 
@@ -777,8 +781,9 @@ async function requestImageEditSingle(config: AiConfig, prompt: string, referenc
     if (isGeminiConfig(config)) return requestGeminiImageSingle(config, prompt, references, params);
     if (isGrok2APIImageConfig(config)) return requestGrokImageEditSingle(config, prompt, references, params);
 
-    const mime = IMAGE_MIME;
+    const mime = params.output.output_format === "gif" ? "image/gif" : IMAGE_MIME;
     const formData = new FormData();
+    Object.entries(params.output).forEach(([key, value]) => formData.set(key, String(value)));
     formData.set("model", config.model);
     formData.set("prompt", withPromptGuard(config, withSystemPrompt(config, prompt)));
     if (params.n > 1) formData.set("n", String(params.n));
@@ -955,7 +960,9 @@ async function requestAndParseImages(config: AiConfig, endpoint: string, request
 }
 
 async function requestImages(config: AiConfig & { seedIndex?: number; seedCount?: number }, prompt: string, references: ReferenceImage[], signal?: AbortSignal): Promise<GeneratedImage[]> {
+    config = prepareImageOutputConfig(config);
 	const translation = await findParameterTranslation(config);
+    if (translation && config.imageOutputFormat === "gif") throw new ImageRequestError("GIF 请使用原生 OpenAI Images 渠道，暂不支持参数转换模型");
 	if (translation) {
 		const input = await imageTranslationInput(config,prompt,references,createImageRequestParams(config));
 		const result = await executeParameterTranslation(config,translation,input,signal);
@@ -1036,7 +1043,9 @@ export async function requestEdit(config: AiConfig & { seedIndex?: number; seedC
 }
 
 export async function createCanvasImageTask(config: AiConfig & { seedIndex?: number; seedCount?: number }, prompt: string, references: ReferenceImage[], options: CanvasImageTaskOptions = {}): Promise<CanvasImageTask> {
+    config = prepareImageOutputConfig(config);
 	const translation = await findParameterTranslation(config);
+    if (translation && config.imageOutputFormat === "gif") throw new ImageRequestError("GIF 请使用原生 OpenAI Images 渠道，暂不支持参数转换模型");
     if (!usesAccountProxy(config)) {
         const images = await requestImages({ ...config, count: "1" }, prompt, references, options.signal);
         options.signal?.throwIfAborted();
@@ -1164,6 +1173,7 @@ async function createCanvasImageTaskRequest(config: AiConfig & { seedIndex?: num
         formData.set("_canvas_task_id", meta.clientTaskId);
         formData.set("_canvas_prompt", meta.prompt);
         if (meta.channelId) formData.set("_canvas_channel_id", meta.channelId);
+        Object.entries(params.output).forEach(([key, value]) => formData.set(key, String(value)));
         formData.set("model", config.model);
         formData.set("prompt", withPromptGuard(config, withSystemPrompt(config, prompt)));
         if (params.n > 1) formData.set("n", String(params.n));

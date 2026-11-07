@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/png"
 	"io"
 	"math/rand"
@@ -57,7 +58,7 @@ func TestDedicatedImageAPIAndAccountWorks(t *testing.T) {
 			t.Fatal(err)
 		}
 		ctx := service.WithUser(context.Background(), model.PublicUser(user))
-		_, err := service.SaveCurrentUserModelConfig(ctx, json.RawMessage(`{"imageModel":"gpt-image-2","imageChannelId":"personal","localChannels":[{"id":"personal","name":"Own key","protocol":"openai","baseUrl":"https://model.invalid/v1","apiKey":"fixture-personal-key","models":["gpt-image-2"]}]}`))
+		_, err := service.SaveCurrentUserModelConfig(ctx, json.RawMessage(`{"imageModel":"gpt-image-2","imageChannelId":"personal","localChannels":[{"id":"personal","name":"Own key","protocol":"openai","baseUrl":"https://model.invalid/v1","apiKey":"fixture-personal-key","models":["gpt-image-2","gpt-image-2.6-flare"]}]}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,6 +84,19 @@ func TestDedicatedImageAPIAndAccountWorks(t *testing.T) {
 		t.Fatal(err)
 	}
 	var calls atomic.Int32
+	var animation bytes.Buffer
+	frames := &gif.GIF{}
+	for index := 0; index < 4; index++ {
+		frame := image.NewPaletted(image.Rect(0, 0, 16, 16), color.Palette{color.Black, color.White})
+		for pixel := range frame.Pix {
+			frame.Pix[pixel] = uint8(index % 2)
+		}
+		frames.Image = append(frames.Image, frame)
+		frames.Delay = append(frames.Delay, 12)
+	}
+	if err := gif.EncodeAll(&animation, frames); err != nil {
+		t.Fatal(err)
+	}
 	previous := http.DefaultTransport
 	http.DefaultTransport = transportFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Host != "model.invalid" {
@@ -93,14 +107,42 @@ func TestDedicatedImageAPIAndAccountWorks(t *testing.T) {
 			return nil, fmt.Errorf("did not use owner's saved key")
 		}
 		results := []map[string]string{{"b64_json": base64.StdEncoding.EncodeToString(original.Bytes())}}
+		format := ""
+		frameCount, frameDuration := 0, 0
 		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 			var request struct {
-				N int `json:"n"`
+				N               int    `json:"n"`
+				OutputFormat    string `json:"output_format"`
+				FrameCount      int    `json:"frame_count"`
+				FrameDurationMs int    `json:"frame_duration_ms"`
+				Stream          bool   `json:"stream"`
 			}
 			_ = json.NewDecoder(r.Body).Decode(&request)
+			if request.Stream {
+				return nil, fmt.Errorf("GIF fixture must not stream")
+			}
+			format, frameCount, frameDuration = request.OutputFormat, request.FrameCount, request.FrameDurationMs
 			if request.N == 2 {
 				results = append(results, map[string]string{"b64_json": base64.StdEncoding.EncodeToString(alternate.Bytes())})
 			}
+		} else if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			if err := r.ParseMultipartForm(4 << 20); err != nil {
+				return nil, err
+			}
+			defer r.MultipartForm.RemoveAll()
+			format = r.FormValue("output_format")
+			if format == "gif" {
+				if r.FormValue("frame_count") != "4" || r.FormValue("frame_duration_ms") != "120" || r.FormValue("stream") != "" {
+					return nil, fmt.Errorf("GIF edit fields lost")
+				}
+				frameCount, frameDuration = 4, 120
+			}
+		}
+		if format == "gif" {
+			if frameCount != 4 || frameDuration != 120 {
+				return nil, fmt.Errorf("GIF fields lost")
+			}
+			results = []map[string]string{{"b64_json": base64.StdEncoding.EncodeToString(animation.Bytes())}}
 		}
 		encoded, _ := json.Marshal(map[string]any{"data": results})
 		payload := string(encoded)
@@ -343,6 +385,54 @@ func TestDedicatedImageAPIAndAccountWorks(t *testing.T) {
 	restarted := request("GET", "/api/image/v1/jobs/"+unknown.ID, key, "", nil, "")
 	if !strings.Contains(string(data(restarted)), "submission_unknown") || calls.Load() != 2 {
 		t.Fatal("restart did not expose unknown outcome")
+	}
+	// Explicit GIF parameters reach the model, and downloaded originals preserve all frames.
+	gifInput := []byte(`{"model":"gpt-image-2.6-flare","prompt":"animated fixture","output_format":"gif","frame_count":4,"frame_duration_ms":120}`)
+	for _, editGIF := range []bool{false, true} {
+		body, contentType := gifInput, "application/json"
+		if editGIF {
+			var buffer bytes.Buffer
+			writer := multipart.NewWriter(&buffer)
+			for field, value := range map[string]string{"model": "gpt-image-2.6-flare", "prompt": "animated fixture edit", "output_format": "gif", "frame_count": "4", "frame_duration_ms": "120"} {
+				_ = writer.WriteField(field, value)
+			}
+			part, _ := writer.CreateFormFile("image", "reference.png")
+			_, _ = part.Write(original.Bytes())
+			_ = writer.Close()
+			body, contentType = buffer.Bytes(), writer.FormDataContentType()
+		}
+		intent := fmt.Sprintf("gif-intent-%t-0001", editGIF)
+		accepted := request("POST", "/api/image/v1/jobs", key, intent, body, contentType)
+		if accepted.Code != 202 {
+			t.Fatal("GIF request rejected")
+		}
+		var gifJob struct {
+			ID string `json:"id"`
+		}
+		_ = json.Unmarshal(data(accepted), &gifJob)
+		deadline = time.Now().Add(15 * time.Second)
+		for time.Now().Before(deadline) {
+			task, _, _ = repository.GetUserCanvasImageTask(owner.ID, gifJob.ID)
+			if task.Status == "completed" || task.Status == "failed" {
+				break
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		if task.Status != "completed" || task.MimeType != "image/gif" {
+			t.Fatal("GIF did not archive")
+		}
+		originalGIF := request("GET", "/api/image/v1/jobs/"+gifJob.ID+"/images/0", key, "", nil, "")
+		decoded, err := gif.DecodeAll(bytes.NewReader(originalGIF.Body.Bytes()))
+		if err != nil || len(decoded.Image) != 4 || !bytes.Equal(originalGIF.Body.Bytes(), animation.Bytes()) {
+			t.Fatal("GIF animation bytes changed")
+		}
+		before := calls.Load()
+		if request("POST", "/api/image/v1/jobs", key, intent, body, contentType).Code != 200 || calls.Load() != before {
+			t.Fatal("GIF retry replayed model")
+		}
+	}
+	if request("POST", "/api/image/v1/jobs", key, "gif-invalid-model", []byte(`{"prompt":"p","output_format":"gif","model":"gpt-image-2"}`), "application/json").Code != 400 || calls.Load() != 4 {
+		t.Fatal("unsupported GIF reached model")
 	}
 	for index := 0; index < 3; index++ {
 		id := fmt.Sprintf("rate-fixture-%d", index)

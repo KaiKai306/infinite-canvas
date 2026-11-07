@@ -22,7 +22,13 @@ JSON提交示例：
 {"prompt":"一只在窗边看雪的橘猫，水彩风格","size":"1024x1024","quality":"auto","count":1}
 ```
 
-支持字段只有 `prompt`、`model`、`size`、`quality`、`count`。提示词1至12000字符，单次1至4张，JSON最大1MiB。模型默认使用凭证创建时选择的模型，也可指定绑定个人渠道允许的其他模型；不能指定其他用户、渠道、Base URL或API Key。模型支持哪些尺寸/质量以本人渠道为准，不自动改模型。
+支持字段为 `prompt`、`model`、`size`、`quality`、`count`、`output_format`、`frame_count`、`frame_duration_ms`。提示词1至12000字符，单次1至4张，JSON最大1MiB。模型默认使用凭证创建时选择的模型，也可指定绑定个人渠道允许的其他模型；不能指定其他用户、渠道、Base URL或API Key。模型支持哪些尺寸/质量以本人渠道为准，不自动改模型。
+
+默认PNG沿用原请求，不新增模型参数；显式 `output_format: "png"` 与省略等价。GPT Image 2.6及更新图片模型可选择GIF，默认4帧、每帧200毫秒，本工作台限制2至16帧、20至2000毫秒；帧字段仅允许用于GIF，非法值会在模型请求前拒绝。GIF不发送stream/partial_images，不支持参数转换模型；参考图编辑同样携带GIF字段。原始动画保留字节，列表仅显示静态封面。渠道须正确转发动画字段，见 [GIF渠道设置](GIF.md)。
+
+```json
+{"model":"gpt-image-2.6-flare","prompt":"循环飘落的雪花","output_format":"gif","frame_count":4,"frame_duration_ms":200,"count":1}
+```
 
 参考图编辑使用 `multipart/form-data`，相同文本字段，加最多4个重复 `image` 文件字段，按上传顺序使用。每张最大10MiB、3200万像素，允许真实PNG/JPEG/WebP，整个请求最大42MiB。不要手工填写boundary；不接受远程参考图URL、本机路径字符串或JSON Base64图。
 

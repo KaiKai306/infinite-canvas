@@ -5,6 +5,7 @@ import { ConfigProvider, Switch } from "antd";
 
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig } from "@/stores/use-config-store";
+import { supportsGifOutput, type ImageOutputSettingKey } from "@/lib/image-output";
 
 const qualityOptions = [
     { value: "auto", label: "自动" },
@@ -40,17 +41,19 @@ export const imageSizeOptions = aspectOptions.map((item) => ({
 
 type ImageSettingsPanelProps = {
     config: AiConfig;
-    onConfigChange: (key: "quality" | "size" | "count", value: string) => void;
+    onConfigChange: (key: "quality" | "size" | "count" | ImageOutputSettingKey, value: string) => void;
     theme: CanvasTheme;
     showTitle?: boolean;
     showSize?: boolean;
     showCount?: boolean;
+    showOutput?: boolean;
+    showQuality?: boolean;
     className?: string;
     maxCount?: number;
     quickCount?: number;
 };
 
-export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, showSize = true, showCount = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, showSize = true, showCount = true, showOutput = true, showQuality = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
     const [snapDimensionToStep, setSnapDimensionToStep] = useState(true);
     const quality = config.quality || "auto";
     const count = Math.max(1, Math.min(maxCount, Math.floor(Math.abs(Number(config.count)) || 1)));
@@ -80,7 +83,18 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                 }}
             >
                 {showTitle ? <div className="text-lg font-semibold">图像设置</div> : null}
-                <div className="space-y-2.5">
+                {showOutput && (supportsGifOutput(config.model) || config.imageOutputFormat === "gif") ? <div className="space-y-2.5">
+                    <SettingTitle color={theme.node.muted}>输出格式</SettingTitle>
+                    <div className="grid grid-cols-2 gap-2.5">{["png", "gif"].map((format) => <OptionPill key={format} disabled={format === "gif" && !supportsGifOutput(config.model)} selected={(config.imageOutputFormat || "png") === format} theme={theme} onClick={() => onConfigChange("imageOutputFormat", format)}>{format === "gif" ? "GIF 动图" : "PNG 图片"}</OptionPill>)}</div>
+                    {config.imageOutputFormat === "gif" ? <>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            <label className="space-y-1 text-xs">帧数<input aria-label="GIF 帧数" type="number" min={2} max={16} step={1} value={config.imageFrameCount || "4"} onChange={(event) => onConfigChange("imageFrameCount", event.target.value)} className="h-9 w-full rounded-lg border bg-transparent px-2" style={{ borderColor: theme.node.stroke }} /></label>
+                            <label className="space-y-1 text-xs">每帧毫秒<input aria-label="GIF 每帧毫秒" type="number" min={20} max={2000} step={20} value={config.imageFrameDurationMs || "200"} onChange={(event) => onConfigChange("imageFrameDurationMs", event.target.value)} className="h-9 w-full rounded-lg border bg-transparent px-2" style={{ borderColor: theme.node.stroke }} /></label>
+                        </div>
+                        <div className="text-xs leading-5" style={{ color: theme.node.muted }}>使用 images 接口；自动关闭流式中间图。GIF 为完整动画，作品封面仍是静态图。模型与渠道须支持动画参数。</div>
+                    </> : null}
+                </div> : null}
+                {showQuality ? <div className="space-y-2.5">
                     <SettingTitle color={theme.node.muted}>质量</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {qualityOptions.map((item) => (
@@ -89,7 +103,7 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                             </OptionPill>
                         ))}
                     </div>
-                </div>
+                </div> : null}
                 {showSize ? (
                     <>
                         <div className="space-y-2.5">
@@ -172,11 +186,12 @@ export function imageSizeLabel(size: string) {
     return aspectOptions.find((item) => (item.size || item.value) === size || item.value === size)?.label || size;
 }
 
-function OptionPill({ selected, theme, onClick, children }: { selected: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
+function OptionPill({ selected, disabled, theme, onClick, children }: { selected: boolean; disabled?: boolean; theme: CanvasTheme; onClick: () => void; children: ReactNode }) {
     return (
         <button
             type="button"
-            className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80"
+            className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={disabled}
             style={{ background: "transparent", borderColor: selected ? theme.node.text : theme.node.stroke, color: theme.node.text }}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClick}
