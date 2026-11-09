@@ -331,8 +331,12 @@ func nativeImageAPIRequest(job model.ImageAPIJob, credential model.ImageAPICrede
 	for key, value := range map[string]string{"_canvas_endpoint": "/images/edits", "_canvas_source": "api", "_canvas_source_id": job.ID, "_canvas_task_id": job.ID, "_canvas_prompt": input.Prompt} {
 		_ = writer.WriteField(key, value)
 	}
+	imageField := "image"
+	if len(images) > 1 {
+		imageField = "image[]"
+	}
 	for index, data := range images {
-		part, err := writer.CreateFormFile("image", "reference-"+strconv.Itoa(index)+imageAPIExtension(types[index]))
+		part, err := writer.CreateFormFile(imageField, "reference-"+strconv.Itoa(index)+imageAPIExtension(types[index]))
 		if err != nil {
 			return nil, "", err
 		}
